@@ -1,0 +1,45 @@
+name: "🚀 Deploy"
+description: "배포 요청/체크"
+title: "[DEPLOY] "
+labels: ["deploy"]
+body:
+  - type: dropdown
+    id: environment
+    attributes:
+      label: "🌱 대상 환경"
+      options:
+        - staging
+        - production
+      description: "배포할 환경을 선택하세요."
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: "📦 포함 범위"
+      description: "이번 배포에 포함될 변경사항(이슈/PR 번호)을 적어주세요."
+      placeholder: "- #123, #124\n- PR: #210, #211"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "✅ 배포 전 점검"
+      options:
+        - label: 단위/통합 테스트 통과
+        - label: 환경변수/시크릿 반영
+        - label: 마이그레이션 검증
+        - label: 롤백 전략 준비
+        - label: 문서/릴리즈 노트 작성
+    validations:
+      required: true
+
+  - type: textarea
+    id: note
+    attributes:
+      label: "📝 특이사항"
+      description: "배포 중 유의사항, 모니터링 포인트, 알림 채널 등을 적어주세요."
+    validations:
+      required: false

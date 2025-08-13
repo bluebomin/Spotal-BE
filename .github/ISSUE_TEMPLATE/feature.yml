@@ -1,0 +1,31 @@
+name: "✨ Feature"
+description: "새로운 기능 추가"
+title: "[FEAT] "
+labels: ["feature"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: "📄 설명"
+      description: "새로운 기능에 대한 설명을 작성해 주세요."
+      placeholder: "자세히 적을수록 좋습니다!"
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "✅ 작업할 내용"
+      description: "할 일을 체크박스 형태로 세분화해 주세요."
+      placeholder: "최대한 세분화 해서 적어주세요!"
+    validations:
+      required: false
+
+  - type: textarea
+    id: references
+    attributes:
+      label: "🙋🏻 참고 자료"
+      description: "레퍼런스, 스크린샷, 링크 등을 자유롭게 첨부해 주세요."
+      placeholder: "관련 이슈/PR, 외부 문서, 디자인 시안 링크 등"
+    validations:
+      required: false
