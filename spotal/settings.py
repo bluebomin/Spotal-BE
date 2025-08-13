@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'spotal',
+    #'rest_framework',
+    'community',
 ]
 
 MIDDLEWARE = [
