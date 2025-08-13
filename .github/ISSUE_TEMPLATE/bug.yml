@@ -1,0 +1,29 @@
+name: "🐞 Bug"
+description: "버그 제보/수정"
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: "요약"
+      placeholder: "어떤 버그가 발생했는지 간단하게 요약해 주세요."
+    validations:
+      required: true
+
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "✅ 기대 동작"
+      placeholder: "정상적으로는 어떤 결과가 나와야 하나요?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: "❌ 실제 동작"
+      placeholder: "현재 어떤 잘못된 결과가 발생하나요? 스크린샷/로그 첨부 환영"
+    validations:
+      required: true
