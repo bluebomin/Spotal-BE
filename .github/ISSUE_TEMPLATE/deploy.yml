@@ -1,6 +1,6 @@
 name: "🚀 Deploy"
 description: "배포 요청/체크"
-title: "[Deploy] "
+title: "[DEPLOY] "
 labels: ["deploy"]
 body:
   - type: dropdown

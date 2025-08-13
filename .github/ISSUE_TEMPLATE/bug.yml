@@ -1,6 +1,6 @@
 name: "🐞 Bug"
 description: "버그 제보/수정"
-title: "[Bug] "
+title: "[FIX] "
 labels: ["bug"]
 body:
   - type: textarea
