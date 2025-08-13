@@ -35,12 +35,15 @@ class memory(models.Model):
 # 커뮤니티 이미지
 class image(models.Model):
     image_id = models.AutoField(primary_key=True)
-    memory_id = models.ForeignKey(memory, on_delete=models.CASCADE, related_name='images')
-    image_url = models.URLField(max_length=200)
-    image_name = models.CharField(max_length=100)
+    memory= models.ForeignKey(memory, on_delete=models.CASCADE, related_name='images')
+    image_url = models.URLField(max_length=200,blank=True, default="")
+    image_name = models.CharField(max_length=100,blank=True, default="")
 
-    def __str__(self):
-        return self.image_name
+    def save(self, *args, **kwargs):
+        if self.image_id:
+            self.image_url = self.image.url
+            self.image_name = self.image.name.split("/")[-1]
+        super().save(*args, **kwargs)
 
 
    

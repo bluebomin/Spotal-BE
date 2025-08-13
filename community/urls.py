@@ -9,6 +9,7 @@ router_community = DefaultRouter()
 router_community.register(r'emotions', EmotionViewSet, basename='emotion')
 router_community.register(r'locations', LocationViewSet, basename='location')
 router_community.register(r'memories', MemoryViewSet, basename='memory')
+router_community.register(r'images', ImageViewSet, basename='image')
 
 urlpatterns = [
     path('', include(router_community.urls)),

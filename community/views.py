@@ -1,13 +1,17 @@
 
 from rest_framework import viewsets
 from .models import memory
-from .serializer import MemorySerializer, EmotionSerializer, LocationSerializer 
+from .serializer import *
 from .models import emotion, location
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Q
-from rest_framework.exceptions import ValidationError   
-
+from rest_framework.exceptions import ValidationError 
+from .ImageSerializer import ImageSerializer  
+from django.conf import settings
+from django.core.files.storage import default_storage
+from .utils import s3_key_from_url
+from rest_framework.parsers import MultiPartParser, FormParser
 
 #Viewset
 
@@ -71,3 +75,23 @@ class MemoryViewSet(viewsets.ModelViewSet):
             ).filter(sel_count=len(ids))
 
         return qs
+
+    
+class ImageViewSet(viewsets.ModelViewSet):
+    queryset = image.objects.all().order_by('-pk')
+    serializer_class = ImageSerializer
+    parser_classes = [MultiPartParser, FormParser]
+
+    def perform_destroy(self, instance):
+        key = getattr(instance, 'image_key', None)
+        if not key and getattr(instance, 'image_url', None):
+            bucket = getattr(settings, "AWS_STORAGE_BUCKET_NAME", None)
+            key = s3_key_from_url(instance.image_url, bucket=bucket)
+
+        if key:
+            try:
+                default_storage.delete(key)
+            except Exception:
+                pass
+
+        instance.delete()

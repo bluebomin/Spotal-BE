@@ -1,6 +1,7 @@
 # serializers.py
 from rest_framework import serializers
-from .models import emotion, location, memory
+from .models import *
+from .ImageSerializer import ImageSerializer
 
 class EmotionSerializer(serializers.ModelSerializer):
     # 프론트에서 'id'로 보이도록 pk를 매핑
@@ -36,7 +37,9 @@ class MemorySerializer(serializers.ModelSerializer):
 
     # 출력용: 태그 상세를 함께 내려주고 싶을 때
     emotions = EmotionSerializer(source='emotion_id', many=True, read_only=True)
-    location = LocationSerializer(source='location_id', read_only=True)
+    location = LocationSerializer(source='location_id', read_only=True) #read_only=True는 출력에만
+
+    images = ImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = memory
@@ -44,7 +47,7 @@ class MemorySerializer(serializers.ModelSerializer):
             'memory_id', 'user_id', 'title', 'content',
             'emotion_ids', 'location_id',        # 입력용
             'emotions', 'location',              # 출력용
-            'created_at', 'updated_at',
+            'created_at', 'updated_at','images'
         ]
 
     def validate(self, attrs):
@@ -55,3 +58,4 @@ class MemorySerializer(serializers.ModelSerializer):
         if emotions is not None and len(emotions) > 3:
             raise serializers.ValidationError({"emotion_ids": "감정 태그는 최대 3개까지 선택 가능합니다."})
         return attrs
+
