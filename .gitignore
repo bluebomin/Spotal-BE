@@ -341,4 +341,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# 가상환경 무시
+myvenv/
 # End of https://www.toptal.com/developers/gitignore/api/python,macos,windows,visualstudiocode,django
