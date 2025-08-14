@@ -39,11 +39,7 @@ class image(models.Model):
     image_url = models.URLField(max_length=200,blank=True, default="")
     image_name = models.CharField(max_length=100,blank=True, default="")
 
-    def save(self, *args, **kwargs):
-        if self.image_id:
-            self.image_url = self.image.url
-            self.image_name = self.image.name.split("/")[-1]
-        super().save(*args, **kwargs)
+ 
 
 
    
