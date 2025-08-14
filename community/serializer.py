@@ -44,7 +44,7 @@ class MemorySerializer(serializers.ModelSerializer):
     class Meta:
         model = memory
         fields = [
-            'memory_id', 'user_id', 'title', 'content',
+            'memory_id', 'user_id',  'content',
             'emotion_ids', 'location_id',        # 입력용
             'emotions', 'location',              # 출력용
             'created_at', 'updated_at','images'

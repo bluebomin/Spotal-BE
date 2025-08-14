@@ -24,13 +24,11 @@ class memory(models.Model):
         related_name="memories",
     ) # 위치는 하나만 선택 가능
     user_id = models.IntegerField()
-    title = models.CharField(max_length=100)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return self.title
+   
 
 # 커뮤니티 이미지
 class image(models.Model):

@@ -8,3 +8,4 @@ def s3_key_from_url(url: str, bucket: str | None = None) -> str:
         if parts and parts[0] == bucket and len(parts) > 1:
             return parts[1]
     return path
+    
