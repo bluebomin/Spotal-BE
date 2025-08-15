@@ -4,32 +4,26 @@ from .models import *
 from .ImageSerializer import ImageSerializer
 
 class EmotionSerializer(serializers.ModelSerializer):
-    # 프론트에서 'id'로 보이도록 pk를 매핑
-    id = serializers.IntegerField(source='pk', read_only=True)
-
     class Meta:
         model = emotion
-        fields = ['id', 'name']
+        fields = '__all__' 
 
 
 class LocationSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(source='pk', read_only=True)
-
     class Meta:
         model = location
-        fields = ['id', 'name']
+        fields = '__all__'
 
 
 class MemorySerializer(serializers.ModelSerializer):
     # 입력용: PK 목록/단일 PK를 받아서 모델의 실제 필드(emotion_id/location_id)에 매핑
     emotion_ids = serializers.PrimaryKeyRelatedField(
-        source='emotion_id',              # ★ 모델 필드명에 맞춤 (ManyToManyField)
+        source='emotion_id',              
         queryset=emotion.objects.all(),
         many=True,
         required=False
     )
     location_id = serializers.PrimaryKeyRelatedField(
-                    # ★ 모델 필드명에 맞춤 (ForeignKey)
         queryset=location.objects.all(),
         required=False,
         allow_null=True

@@ -1,19 +1,45 @@
-
 import os
 from rest_framework import viewsets, status
-from .models import memory
+from .models import *
 from .serializer import *
-from .models import emotion, location
+from .ImageSerializer import * 
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Q
 from rest_framework.exceptions import ValidationError 
-from .ImageSerializer import ImageSerializer  
 from django.conf import settings
 from django.core.files.storage import default_storage
 from .utils import s3_key_from_url
 from rest_framework.parsers import MultiPartParser, FormParser
-from .models import image
+
+# 커뮤니티 글 응답 메시지 추가를 위한 믹스인
+from rest_framework.mixins import CreateModelMixin, UpdateModelMixin, DestroyModelMixin, RetrieveModelMixin, ListModelMixin
+
+class BaseResponseMixin:
+    success_messages = {
+        'create': "글 생성 성공",
+        'update': "글 수정 성공",
+        'partial_update': "글 수정 성공",
+        'destroy': "글 삭제 성공",
+        'retrieve': "글 조회 성공",
+        'list': "글 목록 조회 성공",
+    }
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        if response.status_code < 400:
+            action = getattr(self, 'action', None)
+            message = self.success_messages.get(action)
+            if message:
+                # 데이터가 None이면 빈 딕셔너리로
+                if response.data is None:
+                    response.data = {}
+                # message + data 구조로 변환
+                response.data = {
+                    "message": message,
+                    "data": response.data
+                }
+        return super().finalize_response(request, response, *args, **kwargs)
+
 
 #Viewset
 class EmotionViewSet(viewsets.ModelViewSet):
@@ -24,12 +50,13 @@ class LocationViewSet(viewsets.ModelViewSet):
     queryset = location.objects.all().order_by('pk')
     serializer_class = LocationSerializer
 
-class MemoryViewSet(viewsets.ModelViewSet):
+class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
     queryset = memory.objects.all().order_by('-created_at')
     serializer_class = MemorySerializer
     parser_classes = [MultiPartParser, FormParser]  # 이미지 + 텍스트 같이 받으려면 필요
 
     @action(detail=False, methods=['get'], url_path='tag-options')
+    # 커뮤니티 글 작성 시 감정/위치 태그 목록 조회 (프론트)
     def tag_options(self, request):
         emotions = emotion.objects.all().order_by('pk')
         locations = location.objects.all().order_by('pk')
@@ -38,6 +65,7 @@ class MemoryViewSet(viewsets.ModelViewSet):
             'locations': LocationSerializer(locations, many=True).data
         })
 
+    # 커뮤니티 글 목록 조회 (필터링)
     def get_queryset(self):
         qs = super().get_queryset() \
             .select_related('location_id') \
@@ -52,7 +80,7 @@ class MemoryViewSet(viewsets.ModelViewSet):
                 raise ValidationError({"location_id": "정수 ID여야 합니다."})
             loc = int(loc)
             if not location.objects.filter(pk=loc).exists():
-                raise ValidationError({"location_id": "존재하지 않는 위치 ID입니다."})
+                raise ValidationError({"location_id": f"존재하지 않는 위치 ID {loc}"})
             qs = qs.filter(location_id=loc)
 
         # 감정 필터
@@ -62,8 +90,7 @@ class MemoryViewSet(viewsets.ModelViewSet):
                 ids = [int(x) for x in raw.split(',') if x.strip()]
             except ValueError:
                 raise ValidationError({"emotion_ids": "정수 ID 목록이어야 합니다."})
-            if not ids:
-                raise ValidationError({"emotion_ids": "최소 1개 이상의 ID를 입력하세요."})
+            
 
             missing = [i for i in ids if not emotion.objects.filter(pk=i).exists()]
             if missing:
@@ -98,16 +125,18 @@ class MemoryViewSet(viewsets.ModelViewSet):
 
         # 3. 응답 데이터 구성
         headers = self.get_success_headers(memory_serializer.data)
-        response_data = memory_serializer.data
-        response_data['images'] = image_urls
+        response_data = {
+            "data": memory_serializer.data,
+            
+        }
 
-        return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
-    
+        headers = self.get_success_headers(memory_serializer.data)
+        return Response(memory_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
 
-        # ✅ 연결된 이미지 S3 삭제
+        # 연결된 이미지 S3 삭제
         bucket = getattr(settings, "AWS_STORAGE_BUCKET_NAME", None)
         for img in instance.images.all():  # related_name='images'
             key = s3_key_from_url(img.image_url, bucket=bucket)
@@ -118,10 +147,10 @@ class MemoryViewSet(viewsets.ModelViewSet):
                     pass
             img.delete()  # DB에서 이미지 정보 삭제
 
-        # ✅ 글 삭제
+        # 글 삭제
         instance.delete()
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({},status=status.HTTP_200_OK)
 
 
 # 커뮤니티 이미지만 처리
@@ -130,6 +159,7 @@ class ImageViewSet(viewsets.ModelViewSet):
     serializer_class = ImageSerializer
     parser_classes = [MultiPartParser, FormParser]
 
+    # 이미지 삭제
     def perform_destroy(self, instance):
         key = getattr(instance, 'image_key', None)
         if not key and getattr(instance, 'image_url', None):

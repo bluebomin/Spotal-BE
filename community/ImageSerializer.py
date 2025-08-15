@@ -4,8 +4,6 @@ from rest_framework import serializers
 from uuid import uuid4
 from datetime import date
 import os
-import mimetypes
-
 from .models import image, memory
 
 class ImageSerializer(serializers.ModelSerializer):
@@ -13,7 +11,7 @@ class ImageSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source="pk")
 
     # 업로드용 파일 필드 (모델 필드 아님)
-    image = serializers.ImageField(write_only=True, required=True)
+    image = serializers.ImageField(write_only=True)
     memory_id = serializers.PrimaryKeyRelatedField(
         queryset=memory.objects.all(),
         write_only=True,  # 입력용이므로 읽기 전용 아님
@@ -26,7 +24,7 @@ class ImageSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "image_url", "image_name"]
 
     def validate_image(self, file):
-        max_mb = 10
+        max_mb = 5
         if file.size > max_mb * 1024 * 1024:
             raise serializers.ValidationError(f"파일은 {max_mb}MB 이하만 허용됩니다.")
         allowed = {"image/jpeg", "image/png", "image/webp"}
@@ -38,9 +36,6 @@ class ImageSerializer(serializers.ModelSerializer):
         file = validated_data.pop("image")
         mem = validated_data.pop("memory_id")
         ext = os.path.splitext(file.name)[1]
-        if not ext:
-            guessed = mimetypes.guess_extension(getattr(file, "content_type", "") or "")
-            ext = guessed or ".bin"
 
         key = f"community/images/{date.today():%Y/%m/%d}/{uuid4().hex}{ext}"
         saved_key = default_storage.save(key, file)

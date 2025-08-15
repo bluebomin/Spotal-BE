@@ -28,7 +28,7 @@ class memory(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-   
+    
 
 # 커뮤니티 이미지
 class image(models.Model):
