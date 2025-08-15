@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'community',
     'storages',  # S3 스토리지 사용을 위한 앱
+    'rest_framework.authtoken',
+    'users',
 ]
 
 MIDDLEWARE = [
@@ -155,4 +157,17 @@ STORAGES = {
             'querystring_auth': False,
         },
     },
+}
+# Custom User Model
+AUTH_USER_MODEL = 'users.User'
+
+# Django REST Framework 설정
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
 }
