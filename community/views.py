@@ -71,7 +71,7 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
     # 커뮤니티 글 목록 조회 (필터링)
     def get_queryset(self):
         qs = super().get_queryset() \
-            .select_related('location_id') \
+            .select_related('location') \
             .prefetch_related('emotion_id')
 
         params = self.request.query_params
@@ -185,5 +185,11 @@ def my_community(request):
         user = request.user
         memories = memory.objects.filter(user_id=user).order_by('-created_at')
         serializer = MemorySerializer(memories, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+        {
+            "message": "내가 쓴 글 조회 성공",
+            "data": serializer.data
+        },
+        status=status.HTTP_200_OK
+    )
     return Response({"detail": "Method not allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)

@@ -31,8 +31,8 @@ class MemorySerializer(serializers.ModelSerializer):
     )
 
     # 출력용: 태그 상세를 함께 내려주고 싶을 때
-    emotions_detail = EmotionSerializer(source='emotion_id', many=True, read_only=True)
-    location_detail = LocationSerializer(read_only=True) #read_only=True는 출력에만
+    emotions = EmotionSerializer(source='emotion_id', many=True, read_only=True)
+    location = LocationSerializer(read_only=True) #read_only=True는 출력에만
 
     images = ImageSerializer(many=True, read_only=True)
 
@@ -41,7 +41,7 @@ class MemorySerializer(serializers.ModelSerializer):
         fields = [
             'memory_id', 'user_id',  'content',
             'emotion_ids', 'location_id',        # 입력용
-            'emotions_detail', 'location_detail',              # 출력용
+            'emotions', 'location',              # 출력용
             'created_at', 'updated_at','images'
         ]
         read_only_fields = ['user_id']
