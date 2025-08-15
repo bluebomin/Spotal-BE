@@ -3,7 +3,7 @@ from rest_framework import viewsets, status
 from .models import *
 from .serializer import *
 from .ImageSerializer import * 
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.db.models import Count, Q
 from rest_framework.exceptions import ValidationError 
@@ -11,10 +11,10 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from .utils import s3_key_from_url
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
+
 
 # 커뮤니티 글 응답 메시지 추가를 위한 믹스인
-from rest_framework.mixins import CreateModelMixin, UpdateModelMixin, DestroyModelMixin, RetrieveModelMixin, ListModelMixin
-
 class BaseResponseMixin:
     success_messages = {
         'create': "글 생성 성공",
@@ -54,6 +54,9 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
     queryset = memory.objects.all().order_by('-created_at')
     serializer_class = MemorySerializer
     parser_classes = [MultiPartParser, FormParser]  # 이미지 + 텍스트 같이 받으려면 필요
+    permission_classes = [IsAuthenticated]
+    
+
 
     @action(detail=False, methods=['get'], url_path='tag-options')
     # 커뮤니티 글 작성 시 감정/위치 태그 목록 조회 (프론트)
@@ -103,10 +106,11 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
         return qs
 
     def create(self, request, *args, **kwargs):
+        
         # 1. memory 저장
         memory_serializer = self.get_serializer(data=request.data)
         memory_serializer.is_valid(raise_exception=True)
-        memory_instance = memory_serializer.save()
+        memory_instance = memory_serializer.save(user=request.user)
 
         image_urls = []
         image_files = request.FILES.getlist('images')  # form-data에서 images[] 로 받음
@@ -174,3 +178,12 @@ class ImageViewSet(viewsets.ModelViewSet):
 
         instance.delete()
 
+#view
+@api_view(['GET'])
+def my_community(request):
+    if request.method == 'GET':
+        user = request.user
+        memories = memory.objects.filter(user_id=user).order_by('-created_at')
+        serializer = MemorySerializer(memories, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response({"detail": "Method not allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)

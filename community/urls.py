@@ -14,4 +14,5 @@ router_community.register(r'images', ImageViewSet, basename='image')
 
 urlpatterns = [
     path('', include(router_community.urls)),
+    path('my/', my_community, name='my_community'),  # 내 커뮤니티 글 조회
 ]

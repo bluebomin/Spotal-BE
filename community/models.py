@@ -1,5 +1,6 @@
 from django.db import models
 
+
 # Create your models here.
 class emotion(models.Model):
     emotion_id = models.AutoField(primary_key=True)
@@ -19,11 +20,11 @@ class location(models.Model):
 class memory(models.Model):
     memory_id = models.AutoField(primary_key=True)
     emotion_id = models.ManyToManyField(emotion) # 감정 여러개 선택 가능
-    location_id = models.ForeignKey(location, on_delete=models.SET_NULL,
+    location = models.ForeignKey(location, on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name="memories",
     ) # 위치는 하나만 선택 가능
-    user_id = models.IntegerField()
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='memories')
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
