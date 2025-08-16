@@ -19,6 +19,8 @@ env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))  # 경로 직접 지정
 
 
+from decouple import config
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -50,6 +52,7 @@ INSTALLED_APPS = [
     'storages',  # S3 스토리지 사용을 위한 앱
     'rest_framework.authtoken',
     'users',
+    'recommendations',
 ]
 
 MIDDLEWARE = [
@@ -171,3 +174,5 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+
+OPENAI_API_KEY = config('OPENAI_API_KEY')
