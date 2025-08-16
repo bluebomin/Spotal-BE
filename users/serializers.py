@@ -51,4 +51,14 @@ class NicknameCheckSerializer(serializers.Serializer):
         """닉네임 중복 확인"""
         if User.objects.filter(nickname=value).exists():
             raise serializers.ValidationError('이미 사용 중인 닉네임입니다.')
+        return value
+
+class EmailCheckSerializer(serializers.Serializer):
+    """이메일 중복확인 시리얼라이저"""
+    email = serializers.EmailField()
+    
+    def validate_email(self, value):
+        """이메일 중복 확인"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('이미 사용 중인 이메일입니다.')
         return value 
