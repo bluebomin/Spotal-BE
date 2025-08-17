@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'users',
     'recommendations',
+    'search',
 ]
 
 MIDDLEWARE = [
@@ -176,3 +177,4 @@ REST_FRAMEWORK = {
 
 OPENAI_API_KEY = config('OPENAI_API_KEY')
 PUBLIC_DATA_API_KEY = config('PUBLIC_DATA_API_KEY')
+GOOGLE_API_KEY = config('GOOGLE_API_KEY')

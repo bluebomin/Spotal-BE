@@ -1,11 +1,11 @@
 from django.db import models
+from community.models import Emotion
 
 # Create your models here.
 
-class SeaerchShop(models.Model):
+class SearchShop(models.Model):
     shop_id = models.AutoField(primary_key=True)
-    emotion = models.ForeignKey('Emotion', on_delete=models.CASCADE)
-    location = models.ForeignKey('Location', on_delete=models.CASCADE)
+    emotion_id = models.ManyToManyField(Emotion)
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
     status = models.CharField(max_length=50)

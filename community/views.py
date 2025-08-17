@@ -1,7 +1,7 @@
 import os
 from rest_framework import viewsets, status
 from .models import *
-from .serializer import *
+from .serializers import *
 from .ImageSerializer import * 
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
@@ -43,15 +43,15 @@ class BaseResponseMixin:
 
 #Viewset
 class EmotionViewSet(viewsets.ModelViewSet):
-    queryset = emotion.objects.all().order_by('pk')
+    queryset = Emotion.objects.all().order_by('pk')
     serializer_class = EmotionSerializer
 
 class LocationViewSet(viewsets.ModelViewSet):
-    queryset = location.objects.all().order_by('pk')
+    queryset = Location.objects.all().order_by('pk')
     serializer_class = LocationSerializer
 
 class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
-    queryset = memory.objects.all().order_by('-created_at')
+    queryset = Memory.objects.all().order_by('-created_at')
     serializer_class = MemorySerializer
     parser_classes = [MultiPartParser, FormParser]  # 이미지 + 텍스트 같이 받으려면 필요
     permission_classes = [IsAuthenticated]
@@ -61,8 +61,8 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='tag-options')
     # 커뮤니티 글 작성 시 감정/위치 태그 목록 조회 (프론트)
     def tag_options(self, request):
-        emotions = emotion.objects.all().order_by('pk')
-        locations = location.objects.all().order_by('pk')
+        emotions = Emotion.objects.all().order_by('pk')
+        locations = Location.objects.all().order_by('pk')
         return Response({
             'emotions': EmotionSerializer(emotions, many=True).data,
             'locations': LocationSerializer(locations, many=True).data
@@ -82,7 +82,7 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
             if not str(loc).isdigit():
                 raise ValidationError({"location_id": "정수 ID여야 합니다."})
             loc = int(loc)
-            if not location.objects.filter(pk=loc).exists():
+            if not Location.objects.filter(pk=loc).exists():
                 raise ValidationError({"location_id": f"존재하지 않는 위치 ID {loc}"})
             qs = qs.filter(location_id=loc)
 
@@ -95,7 +95,7 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
                 raise ValidationError({"emotion_ids": "정수 ID 목록이어야 합니다."})
             
 
-            missing = [i for i in ids if not emotion.objects.filter(pk=i).exists()]
+            missing = [i for i in ids if not Emotion.objects.filter(pk=i).exists()]
             if missing:
                 raise ValidationError({"emotion_ids": f"존재하지 않는 감정 ID: {missing}"})
 
@@ -120,7 +120,7 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
             file_path = default_storage.save(f"community/{img_file.name}", img_file)  # S3 저장
             file_url = default_storage.url(file_path)  # S3 URL 생성
 
-            image.objects.create(
+            Image.objects.create(
                 memory=memory_instance,
                 image_url=file_url,
                 image_name=os.path.basename(img_file.name)
@@ -159,7 +159,7 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
 
 # 커뮤니티 이미지만 처리
 class ImageViewSet(viewsets.ModelViewSet):
-    queryset = image.objects.all().order_by('-pk')
+    queryset = Image.objects.all().order_by('-pk')
     serializer_class = ImageSerializer
     parser_classes = [MultiPartParser, FormParser]
 
@@ -183,7 +183,7 @@ class ImageViewSet(viewsets.ModelViewSet):
 def my_community(request):
     if request.method == 'GET':
         user = request.user
-        memories = memory.objects.filter(user_id=user).order_by('-created_at')
+        memories = Memory.objects.filter(user_id=user).order_by('-created_at')
         serializer = MemorySerializer(memories, many=True)
         return Response(
         {
