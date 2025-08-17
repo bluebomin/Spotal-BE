@@ -1,36 +1,28 @@
+from django.conf import settings
 import requests
-from urllib.parse import quote
 
-def search_store_realtime(api_key, query, dataset="LOCALDATA_072404_YS"):
-    start = 1
-    limit = 1000
-    results = []
-    api_key = quote(api_key)  # 서비스키 인코딩
+# Google API Helper
+def get_place_id(query):
+    url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+    params = {
+        "input": query,
+        "inputtype": "textquery",
+        "fields": "place_id",
+        "key": settings.GOOGLE_API_KEY
+    }
+    res = requests.get(url, params=params).json()
+    candidates = res.get("candidates", [])
+    return candidates[0]["place_id"] if candidates else None
 
-    while True:
-        end = start + limit - 1
-        url = f"http://openapi.seoul.go.kr:8088/{api_key}/json/{dataset}/{start}/{end}/"
-        response = requests.get(url)
+def get_place_details(place_id):
+    url = "https://maps.googleapis.com/maps/api/place/details/json"
+    params = {
+        "place_id": place_id,
+        "fields": "name,formatted_address,rating,reviews,business_status,types,photos",
+        "key": settings.GOOGLE_API_KEY
+    }
+    res = requests.get(url, params=params).json()
+    return res.get("result", {})
 
-        try:
-            data = response.json()
-        except Exception:
-            break
-
-        # ✅ dataset 변수 활용 (음식점/카페 구분)
-        rows = data.get(dataset, {}).get("row", [])
-        if not rows:
-            break
-
-        # 부분 검색 (대소문자 구분 없애기)
-        for store in rows:
-            name = (store.get("BPLCNM") or "").lower()
-            jibun = (store.get("SITEWHLADDR") or "").lower()
-            road = (store.get("RDNWHLADDR") or "").lower()
-
-            if query.lower() in name or query.lower() in jibun or query.lower() in road:
-                results.append(store)
-
-        start += limit
-
-    return results
+def get_photo_url(photo_ref, maxwidth=400):
+    return f"https://maps.googleapis.com/maps/api/place/photo?maxwidth={maxwidth}&photoreference={photo_ref}&key={settings.GOOGLE_API_KEY}"

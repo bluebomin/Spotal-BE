@@ -1,41 +1,15 @@
-from django.conf import settings
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .service.summary_card import generate_summary_card, generate_emotion_tags
 from .serializers import SearchShopSerializer
 from community.models import Emotion
-
-import requests
-
-
-# Google API Helper
-def get_place_id(query):
-    url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
-    params = {
-        "input": query,
-        "inputtype": "textquery",
-        "fields": "place_id",
-        "key": settings.GOOGLE_API_KEY
-    }
-    res = requests.get(url, params=params).json()
-    candidates = res.get("candidates", [])
-    return candidates[0]["place_id"] if candidates else None
-
-def get_place_details(place_id):
-    url = "https://maps.googleapis.com/maps/api/place/details/json"
-    params = {
-        "place_id": place_id,
-        "fields": "name,formatted_address,rating,reviews,business_status,types,photos",
-        "key": settings.GOOGLE_API_KEY
-    }
-    res = requests.get(url, params=params).json()
-    return res.get("result", {})
-
-def get_photo_url(photo_ref, maxwidth=400):
-    return f"https://maps.googleapis.com/maps/api/place/photo?maxwidth={maxwidth}&photoreference={photo_ref}&key={settings.GOOGLE_API_KEY}"
+from .service.search import *
+from rest_framework.decorators import permission_classes
+from rest_framework.permissions import IsAuthenticated
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated]) 
 def store_card(request):
     query = request.GET.get("q")
     if not query:
@@ -64,9 +38,7 @@ def store_card(request):
     photo = details.get("photos", [])
     photo_url = None
     if photo:
-        photo_url = get_photo_url(photo[0]["photo_reference"])  # ✅ 첫 번째 사진만
-
-
+        photo_url = get_photo_url(photo[0]["photo_reference"])  # 첫 번째 사진만
 
     # 5. DB 저장
     shop_data = {
