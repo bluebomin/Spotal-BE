@@ -5,12 +5,12 @@ from django.conf import settings
 class Place(models.Model):
     shop_id = models.BigAutoField(primary_key=True)
     emotion = models.ForeignKey(
-        "community.emotion",   
+        "community.Emotion",   
         on_delete=models.PROTECT,
         related_name="places"
     )
     location = models.ForeignKey(
-        "community.location",   
+        "community.Location",   
         on_delete=models.PROTECT,
         related_name="places"
     )
