@@ -12,6 +12,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from decouple import config
+import os
+import environ
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))  # 경로 직접 지정
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,6 +47,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'spotal',
     'rest_framework',
+    'community',
+    'storages',  # S3 스토리지 사용을 위한 앱
     'rest_framework.authtoken',
     'users',
     'recommendations',
@@ -108,13 +117,13 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ko-kr'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Seoul'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -127,6 +136,30 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# S3 settings
+STORAGES = {
+    'default': {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'bucket_name': env('AWS_STORAGE_BUCKET_NAME'),
+            'region_name': env('AWS_S3_REGION_NAME',default='ap-northeast-2'),  # 기본 리전 설정
+            'location':"media",
+            'default_acl': None,  # 기본 ACL 설정
+            'querystring_auth': True,  
+            'file_overwrite': False,  # 파일 덮어쓰기 방지
+        },
+    },
+    'staticfiles': {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'bucket_name': os.getenv('AWS_STORAGE_BUCKET_NAME'),
+            'region_name': os.getenv('AWS_S3_REGION_NAME', default='ap-northeast-2'),  # 기본 리전 설정
+            'location': "static",
+            'default_acl': None,  # 기본 ACL 설정
+            'querystring_auth': False,
+        },
+    },
+}
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
 

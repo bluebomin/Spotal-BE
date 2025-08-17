@@ -1,11 +1,12 @@
 
 from django.http import JsonResponse
 from django.conf import settings
-from urllib.parse import quote
 from .service.search import search_store_realtime
 from .service.summary_card import generate_summary_card, generate_emotion_tags
-
-
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .serializers import SearchShopSerializer
+from .models import SeaerchShop
 # 가게 요약 카드 
 def yongsan_store_card(request):
     query = request.GET.get("q")
@@ -34,7 +35,7 @@ def yongsan_store_card(request):
                     "name": store.get("BPLCNM"),
                     "status": store.get("TRDSTATENM"),
                     "address": store.get("SITEWHLADDR") or store.get("RDNWHLADDR"),
-                    "업태구분명": store.get("UPTAENM"),
+                    "uptaenm": store.get("UPTAENM"),
                     },
                     "summary_card": summary,
                     "emotion_tags": tags
@@ -43,3 +44,13 @@ def yongsan_store_card(request):
             return JsonResponse({"error": f"요약 카드 생성 중 오류 발생: {str(e)}"}, status=500)
 
     return JsonResponse(cards, safe=False)
+
+
+@api_view(['POST'])
+def create_shop(request):
+    serializer = SearchShopSerializer(data=request.data)
+    if serializer.is_valid():
+        shop = serializer.save()
+        return Response(SearchShopSerializer(shop).data, status=201)
+    return Response(serializer.errors, status=400)
+
