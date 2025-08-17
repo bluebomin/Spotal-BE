@@ -1,10 +1,12 @@
 from django.shortcuts import render
-from rest_framework import status
+from rest_framework import status, generics, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.conf import settings
 from .services import call_gpt_api, get_store_recommendation
+from .models import Place, SavedPlace, AISummary
+from .serializers import PlaceSerializer, SavedPlaceSerializer, AISummarySerializer
 
 # Create your views here.
 
@@ -73,3 +75,63 @@ def recommend_stores(request):
         'recommendation': recommendation,
         'message': '가게 추천이 완료되었습니다!'
     }, status=status.HTTP_200_OK)
+
+
+
+# --------------- Place (추천가게) ----------------
+
+class PlaceCreateView(generics.CreateAPIView):
+    queryset = Place.objects.all()
+    serializer_class = PlaceSerializer
+    permission_classes = [permissions.AllowAny]
+
+    
+    def perform_create(self, serializer):
+        place = serializer.save()
+        AISummary.objects.create(shop=place, summary="gpt 요약이 들어갈 곳!!") ## 아직 gpt 연결 안 함! 더미데이터 넣어서 생성.
+
+
+class PlaceDetailView(generics.RetrieveAPIView):
+    queryset = Place.objects.all()
+    serializer_class = PlaceSerializer
+    lookup_field = "shop_id"
+    permission_classes = [permissions.AllowAny]
+
+
+# --------------- SavedPlace (감정보관함) ----------------
+
+class SavedPlaceCreateView(generics.CreateAPIView):
+    queryset = SavedPlace.objects.all()
+    serializer_class = SavedPlaceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class SavedPlaceListView(generics.ListAPIView):
+    serializer_class = SavedPlaceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return SavedPlace.objects.filter(user=self.request.user).order_by("-created_date")
+
+
+class SavedPlaceDeleteView(generics.DestroyAPIView):
+    serializer_class = SavedPlaceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = "saved_id"
+
+    def get_queryset(self):
+        return SavedPlace.objects.filter(user=self.request.user)
+
+
+# --------------- AISummary (요약) ----------------
+
+class AISummaryDetailView(generics.RetrieveAPIView):
+    serializer_class = AISummarySerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = "shop_id"
+
+    def get_queryset(self):
+        return AISummary.objects.all()
