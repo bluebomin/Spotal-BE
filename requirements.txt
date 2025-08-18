@@ -10,3 +10,6 @@ rapidfuzz==3.13.0
 
 django-environ
 djangorestframework-simplejwt
+
+requests>=2.31.0
+pandas
