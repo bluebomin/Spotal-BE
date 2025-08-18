@@ -2,23 +2,37 @@ from django.conf import settings
 import requests
 import pandas as pd
 import os
+from rapidfuzz import fuzz
+
 
 CSV_PATH = os.path.join(settings.BASE_DIR, "data", "용산구이전가게.csv")
 history_df = pd.read_csv(CSV_PATH)
 
 # Google API Helper
 def get_place_id(query):
-
     url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
     params = {
         "input": query,
         "inputtype": "textquery",
-        "fields": "place_id",
+        "fields": "place_id,name",
         "key": settings.GOOGLE_API_KEY
     }
     res = requests.get(url, params=params).json()
     candidates = res.get("candidates", [])
-    return candidates[0]["place_id"] if candidates else None
+    if not candidates:
+        return None
+
+    place_name = candidates[0]["name"]
+
+    # 문자열 유사도 계산 (0~100 사이)
+    similarity = fuzz.ratio(query.lower(), place_name.lower())
+    print(f"[DEBUG] 검색어={query}, 구글결과={place_name}, 유사도={similarity}")
+
+    # 유사도가 60% 이상일 때만 인정 (기준은 상황에 맞게 조정 가능)
+    if similarity < 60:
+        return None
+
+    return candidates[0]["place_id"]
 
 def get_place_details(place_id, place_name=None):
     previous_address = None
@@ -38,7 +52,18 @@ def get_place_details(place_id, place_name=None):
     res = requests.get(url, params=params).json()
     result = res.get("result", {})
 
+    # 상태 매핑
+    if previous_address:
+        status = "이전함"
+    else:
+        google_status = result.get("business_status")
+        if google_status == "OPERATIONAL":
+            status = "운영중"
+        else:
+            status = "폐업함"
+
     result['previous_address']=previous_address
+    result["business_status"] = status   
     print("찾은 이전주소:", previous_address)
 
     return result

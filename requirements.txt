@@ -6,3 +6,4 @@ python-decouple==3.8
 openai
 django-storages[boto3]>=1.14
 boto3==1.28.60
+rapidfuzz==3.13.0
