@@ -1,5 +1,5 @@
 import os
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics, permissions
 from .models import *
 from .serializers import *
 from .ImageSerializer import * 
@@ -198,3 +198,32 @@ def my_community(request):
         status=status.HTTP_200_OK
     )
     return Response({"detail": "Method not allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+# 북마크 생성
+class BookmarkCreateView(generics.CreateAPIView):
+    queryset = Bookmark.objects.all()
+    serializer_class = BookmarkSerializer
+    permission_classes = [permissions.AllowAny]  
+
+
+# 북마크 목록 조회
+class BookmarkListView(generics.ListAPIView):
+    serializer_class = BookmarkSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        user_id = self.request.query_params.get("user")
+        if user_id:
+            return Bookmark.objects.filter(user_id=user_id).order_by("-created_date")
+        return Bookmark.objects.all().order_by("-created_date")
+
+
+# 북마크 삭제
+class BookmarkDeleteView(generics.DestroyAPIView):
+    serializer_class = BookmarkSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = "bookmark_id"
+
+    def get_queryset(self):
+        return Bookmark.objects.all()
