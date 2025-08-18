@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('community', '0008_rename_location_id_memory_location_and_more'),
+        ('community', '0002_initial'),
         ('search', '0001_initial'),
     ]
 
