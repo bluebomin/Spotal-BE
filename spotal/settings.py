@@ -21,6 +21,8 @@ env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))  # 경로 직접 지정
 
 
+from decouple import config
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -180,3 +182,4 @@ REST_FRAMEWORK = {
 OPENAI_API_KEY = config('OPENAI_API_KEY')
 #PUBLIC_DATA_API_KEY = config('PUBLIC_DATA_API_KEY')
 GOOGLE_API_KEY = config('GOOGLE_API_KEY')
+
