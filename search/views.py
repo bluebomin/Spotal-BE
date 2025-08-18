@@ -6,6 +6,7 @@ from community.models import Emotion
 from .service.search import *
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
+from .service.address import *
 
 
 @api_view(['GET'])
@@ -23,6 +24,13 @@ def store_card(request):
     # 2. 구글 Place 상세 정보
     details = get_place_details(place_id,query)
     reviews = [r["text"] for r in details.get("reviews", [])]
+
+    # 🔹 영문 → 한국어 변환 처리 (GPT API)
+    name = details.get("name")
+    address = details.get("formatted_address")
+
+    name_ko = translate_to_korean(name) if name else None
+    address_ko = translate_to_korean(address) if address else None
 
     # 3. GPT 요약 카드 / 감정 태그 생성
     summary = generate_summary_card(details, reviews)
@@ -43,8 +51,8 @@ def store_card(request):
     # 5. DB 저장
     shop_data = {
         "emotion_ids": emotion_ids,
-        "name": details.get("name"),
-        "address": details.get("formatted_address"),
+        "name": name_ko or details.get("name"),
+        "address": address_ko or details.get("formatted_address"),
         "status": details.get("business_status"),
         "uptaenm" : details.get("types", [None])[0] or "기타" 
     }
