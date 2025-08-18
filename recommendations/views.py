@@ -83,7 +83,7 @@ def recommend_stores(request):
 class PlaceCreateView(generics.CreateAPIView):
     queryset = Place.objects.all()
     serializer_class = PlaceSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny] # permission 걸고싶으면 permissions.IsAuthenticated로 다시 수정하기 
 
     
     def perform_create(self, serializer):
@@ -103,7 +103,7 @@ class PlaceDetailView(generics.RetrieveAPIView):
 class SavedPlaceCreateView(generics.CreateAPIView):
     queryset = SavedPlace.objects.all()
     serializer_class = SavedPlaceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -111,7 +111,7 @@ class SavedPlaceCreateView(generics.CreateAPIView):
 
 class SavedPlaceListView(generics.ListAPIView):
     serializer_class = SavedPlaceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         return SavedPlace.objects.filter(user=self.request.user).order_by("-created_date")
@@ -119,7 +119,7 @@ class SavedPlaceListView(generics.ListAPIView):
 
 class SavedPlaceDeleteView(generics.DestroyAPIView):
     serializer_class = SavedPlaceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     lookup_field = "saved_id"
 
     def get_queryset(self):
