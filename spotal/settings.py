@@ -11,8 +11,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
 import os
 import environ
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 env = environ.Env()
@@ -53,6 +55,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'users',
     'recommendations',
+    'search',
 ]
 
 MIDDLEWARE = [
@@ -169,6 +172,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
+        
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -176,3 +180,6 @@ REST_FRAMEWORK = {
 }
 
 OPENAI_API_KEY = config('OPENAI_API_KEY')
+#PUBLIC_DATA_API_KEY = config('PUBLIC_DATA_API_KEY')
+GOOGLE_API_KEY = config('GOOGLE_API_KEY')
+

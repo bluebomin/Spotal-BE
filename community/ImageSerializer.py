@@ -4,7 +4,7 @@ from rest_framework import serializers
 from uuid import uuid4
 from datetime import date
 import os
-from .models import image, memory
+from .models import Image, Memory
 
 class ImageSerializer(serializers.ModelSerializer):
     # 응답용 가짜 id 필드 (모델 필드 아님) -> pk를 그대로 노출
@@ -13,13 +13,13 @@ class ImageSerializer(serializers.ModelSerializer):
     # 업로드용 파일 필드 (모델 필드 아님)
     image = serializers.ImageField(write_only=True)
     memory_id = serializers.PrimaryKeyRelatedField(
-        queryset=memory.objects.all(),
+        queryset=Memory.objects.all(),
         write_only=True,  # 입력용이므로 읽기 전용 아님
         required=True
     )
 
     class Meta:
-        model = image
+        model = Image
         fields = ["id", "image", "image_url", "image_name","memory_id"]  # 모델 외 커스텀 필드 포함 OK
         read_only_fields = ["id", "image_url", "image_name"]
 
@@ -43,7 +43,7 @@ class ImageSerializer(serializers.ModelSerializer):
         url = default_storage.url(saved_key)
         name = os.path.basename(saved_key)
 
-        instance = image.objects.create(
+        instance = Image.objects.create(
             image_url=url,
             image_name=name,
             # image_key=saved_key,  # 모델에 image_key 추가했으면 함께 저장 추천
