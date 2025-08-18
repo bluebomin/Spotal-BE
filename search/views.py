@@ -13,12 +13,12 @@ from rest_framework.permissions import IsAuthenticated
 def store_card(request):
     query = request.GET.get("q")
     if not query:
-        return Response({"error": "검색어(q)가 필요합니다."}, status=400)
+        return Response({"message": "검색어(q)가 필요합니다."}, status=400)
 
     # 1. 구글 Place ID 찾기
     place_id = get_place_id(query)
     if not place_id:
-        return Response({"error": "구글맵에서 가게를 찾을 수 없습니다."}, status=404)
+        return Response({"message": "구글맵에서 가게를 찾을 수 없습니다."}, status=404)
 
     # 2. 구글 Place 상세 정보
     details = get_place_details(place_id,query)
@@ -54,6 +54,7 @@ def store_card(request):
 
     # 6. 응답
     return Response({
+        "message":"가게 정보 반환 성공",
         "store": serializer.data,
         "summary_card": summary,
         "google_rating": details.get("rating"),
