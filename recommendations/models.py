@@ -31,7 +31,7 @@ class AISummary(models.Model):
     shop = models.ForeignKey(
         Place,
         on_delete=models.CASCADE,
-        related_name="summaries"
+        related_name="ai_summary"
     )
     summary = models.TextField()
 
