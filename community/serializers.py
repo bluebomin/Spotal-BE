@@ -21,13 +21,15 @@ class MemorySerializer(serializers.ModelSerializer):
         source='emotion_id',              
         queryset=Emotion.objects.all(),
         many=True,
-        required=False
+        required=False,
+        write_only=True
     )
     location_id = serializers.PrimaryKeyRelatedField(
     source='location',  # ForeignKey 필드명과 맞추기
     queryset=Location.objects.all(),
     required=False,
-    allow_null=True
+    allow_null=True,
+    write_only=True
     )
 
     # 출력용: 태그 상세를 함께 내려주고 싶을 때
