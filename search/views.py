@@ -56,6 +56,8 @@ def store_card(request):
     return Response({
         "message":"가게 정보 반환 성공",
         "store": serializer.data,
+        "latitude": details["geometry"]["location"]["lat"],   # 위도
+        "longitude": details["geometry"]["location"]["lng"],  # 경도
         "summary_card": summary,
         "google_rating": details.get("rating"),
         "photos": photo_url,
