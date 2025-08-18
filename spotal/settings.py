@@ -167,8 +167,8 @@ AUTH_USER_MODEL = 'users.User'
 # Django REST Framework 설정
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+       # 'rest_framework.authentication.SessionAuthentication', # 세션으로 하면 로그인이 일부 안 되는 문제 발생 
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -176,3 +176,9 @@ REST_FRAMEWORK = {
 }
 
 OPENAI_API_KEY = config('OPENAI_API_KEY')
+
+
+# authenticate()가 User 모델 인식 (없으면 None 반환)
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",  
+]
