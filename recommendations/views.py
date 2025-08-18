@@ -105,16 +105,19 @@ class SavedPlaceCreateView(generics.CreateAPIView):
     serializer_class = SavedPlaceSerializer
     permission_classes = [permissions.AllowAny]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
 
 class SavedPlaceListView(generics.ListAPIView):
     serializer_class = SavedPlaceSerializer
     permission_classes = [permissions.AllowAny]
 
+    # user별 필터링해서 목록 보여줌. 
     def get_queryset(self):
-        return SavedPlace.objects.filter(user=self.request.user).order_by("-created_date")
+        user_id = self.request.query_params.get("user")  # 쿼리 파라미터로 받기
+        if user_id:
+            return SavedPlace.objects.filter(user_id=user_id).order_by("-created_date")
+        return SavedPlace.objects.all().order_by("-created_date")
+        
 
 
 class SavedPlaceDeleteView(generics.DestroyAPIView):
@@ -123,7 +126,18 @@ class SavedPlaceDeleteView(generics.DestroyAPIView):
     lookup_field = "saved_id"
 
     def get_queryset(self):
-        return SavedPlace.objects.filter(user=self.request.user)
+        return SavedPlace.objects.all()
+    
+    # 삭제되었다고 응답 띄우기
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data  
+        self.perform_destroy(instance)
+        return Response(
+            {"message": "저장한 장소가 삭제되었습니다.", "deleted_place": data},
+            status=status.HTTP_200_OK
+        )
 
 
 # --------------- AISummary (요약) ----------------
