@@ -1,8 +1,14 @@
 from django.conf import settings
 import requests
+import pandas as pd
+import os
+
+CSV_PATH = os.path.join(settings.BASE_DIR, "data", "용산구이전가게.csv")
+history_df = pd.read_csv(CSV_PATH)
 
 # Google API Helper
 def get_place_id(query):
+
     url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
     params = {
         "input": query,
@@ -14,7 +20,15 @@ def get_place_id(query):
     candidates = res.get("candidates", [])
     return candidates[0]["place_id"] if candidates else None
 
-def get_place_details(place_id):
+def get_place_details(place_id, place_name=None):
+    previous_address = None
+    if place_name:
+        match = history_df[history_df['상호명'].str.contains(place_name, case=False, na=False)]
+        print("검색 키워드:", place_name)   # ← 검색어 확인
+
+        if not match.empty:
+            previous_address = match.iloc[0]['이전 전 주소']
+        
     url = "https://maps.googleapis.com/maps/api/place/details/json"
     params = {
         "place_id": place_id,
@@ -22,7 +36,12 @@ def get_place_details(place_id):
         "key": settings.GOOGLE_API_KEY
     }
     res = requests.get(url, params=params).json()
-    return res.get("result", {})
+    result = res.get("result", {})
+
+    result['previous_address']=previous_address
+    print("찾은 이전주소:", previous_address)
+
+    return result
 
 def get_photo_url(photo_ref, maxwidth=400):
     return f"https://maps.googleapis.com/maps/api/place/photo?maxwidth={maxwidth}&photoreference={photo_ref}&key={settings.GOOGLE_API_KEY}"

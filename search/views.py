@@ -21,7 +21,7 @@ def store_card(request):
         return Response({"error": "구글맵에서 가게를 찾을 수 없습니다."}, status=404)
 
     # 2. 구글 Place 상세 정보
-    details = get_place_details(place_id)
+    details = get_place_details(place_id,query)
     reviews = [r["text"] for r in details.get("reviews", [])]
 
     # 3. GPT 요약 카드 / 감정 태그 생성
@@ -48,7 +48,7 @@ def store_card(request):
         "status": details.get("business_status"),
         "uptaenm" : details.get("types", [None])[0] or "기타" 
     }
-    serializer = SearchShopSerializer(data=shop_data)
+    serializer = SearchShopSerializer(data=shop_data,context={'previous_address': details.get('previous_address')})
     serializer.is_valid(raise_exception=True)
     shop = serializer.save()
 
