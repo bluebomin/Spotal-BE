@@ -1,7 +1,7 @@
 import os
 from rest_framework import viewsets, status
 from .models import *
-from .serializer import *
+from .serializers import *
 from .ImageSerializer import * 
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
@@ -87,7 +87,7 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
             if not str(loc).isdigit():
                 raise ValidationError({"location_id": "정수 ID여야 합니다."})
             loc = int(loc)
-            if not location.objects.filter(pk=loc).exists():
+            if not Location.objects.filter(pk=loc).exists():
                 raise ValidationError({"location_id": f"존재하지 않는 위치 ID {loc}"})
             qs = qs.filter(location_id=loc)
 
@@ -100,7 +100,7 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
                 raise ValidationError({"emotion_ids": "정수 ID 목록이어야 합니다."})
             
 
-            missing = [i for i in ids if not emotion.objects.filter(pk=i).exists()]
+            missing = [i for i in ids if not Emotion.objects.filter(pk=i).exists()]
             if missing:
                 raise ValidationError({"emotion_ids": f"존재하지 않는 감정 ID: {missing}"})
 
@@ -125,7 +125,7 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
             file_path = default_storage.save(f"community/{img_file.name}", img_file)  # S3 저장
             file_url = default_storage.url(file_path)  # S3 URL 생성
 
-            image.objects.create(
+            Image.objects.create(
                 memory=memory_instance,
                 image_url=file_url,
                 image_name=os.path.basename(img_file.name)
