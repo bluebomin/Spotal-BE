@@ -24,4 +24,6 @@ urlpatterns = [
     path('api/recommendations/', include('recommendations.urls')),
     path('search/', include('search.urls')),
     path('community/', include('community.urls')),
+    path('api/recommendations/', include('recommendations.urls')),
+
 ]

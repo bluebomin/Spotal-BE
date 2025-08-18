@@ -5,7 +5,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import login
-from .serializers import UserSerializer, LoginSerializer, NicknameCheckSerializer
+from .serializers import UserSerializer, LoginSerializer, NicknameCheckSerializer, EmailCheckSerializer
 
 # Create your views here.
 
@@ -71,5 +71,21 @@ def check_nickname(request):
     
     return Response({
         'message': serializer.errors['nickname'][0],
+        'available': False
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def check_email(request):
+    """이메일 중복확인 API"""
+    serializer = EmailCheckSerializer(data=request.data)
+    if serializer.is_valid():
+        return Response({
+            'message': '사용 가능한 이메일입니다.',
+            'available': True
+        }, status=status.HTTP_200_OK)
+    
+    return Response({
+        'message': serializer.errors['email'][0],
         'available': False
     }, status=status.HTTP_400_BAD_REQUEST)
