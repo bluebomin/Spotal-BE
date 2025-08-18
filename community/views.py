@@ -13,6 +13,9 @@ from .utils import s3_key_from_url
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import permission_classes
+
 
 # 커뮤니티 글 응답 메시지 추가를 위한 믹스인
 class BaseResponseMixin:
@@ -45,10 +48,12 @@ class BaseResponseMixin:
 class EmotionViewSet(viewsets.ModelViewSet):
     queryset = Emotion.objects.all().order_by('pk')
     serializer_class = EmotionSerializer
+    permission_classes = [AllowAny] 
 
 class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.all().order_by('pk')
     serializer_class = LocationSerializer
+    permission_classes = [AllowAny] 
 
 class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
     queryset = Memory.objects.all().order_by('-created_at')

@@ -32,7 +32,7 @@ class LoginSerializer(serializers.Serializer):
         password = attrs.get('password')
         
         if email and password:
-            user = authenticate(email=email, password=password)
+            user = authenticate(username=email, password=password)
             if not user:
                 raise serializers.ValidationError('이메일 또는 비밀번호가 올바르지 않습니다.')
             if not user.is_active:
