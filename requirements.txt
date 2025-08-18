@@ -6,3 +6,4 @@ django-storages[boto3]>=1.14
 boto3==1.28.60
 openai
 django-environ
+djangorestframework-simplejwt
