@@ -15,6 +15,7 @@ def get_place_id(query):
         "input": query,
         "inputtype": "textquery",
         "fields": "place_id,name",
+        "language": "ko",
         "key": settings.GOOGLE_API_KEY
     }
     res = requests.get(url, params=params).json()
