@@ -4,11 +4,13 @@ import re
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
-def generate_summary_card(details, reviews):
+def generate_summary_card(details, reviews,uptaenms):
     prompt = f"""
-    아래는 '{details.get("name")}' 가게의 실제 구글맵 리뷰 일부입니다:
+    아래는 '{details.get("name")}' 가게의 실제 구글맵 리뷰와 업태구분 일부입니다:
 
     {reviews[:5]}
+    {uptaenms}
+
 
     위 리뷰들을 바탕으로 사용자에게 보여줄 요약카드를 작성해줘.
 
@@ -18,6 +20,7 @@ def generate_summary_card(details, reviews):
     - 없는 사실은 절대 추가하지 마
     - 가게 위치, 영업시간, 전화번호는 언급하지 마
     - 무조건 한국말로만 요약 써줘
+    - 업태 구분명을 참고하여 장소에 맞는 요약을 써줘
     - 리뷰를 기반으로 그 가게의 대표 메뉴나 특징을 언급해도 좋아
     - 예시: "55년 넘게 연탄불 납작 불고기로 사랑받은 용산의 명소"
     """
