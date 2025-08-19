@@ -32,7 +32,7 @@ class LoginSerializer(serializers.Serializer):
         password = attrs.get('password')
         
         if email and password:
-            user = authenticate(email=email, password=password)
+            user = authenticate(username=email, password=password)
             if not user:
                 raise serializers.ValidationError('이메일 또는 비밀번호가 올바르지 않습니다.')
             if not user.is_active:
@@ -51,4 +51,14 @@ class NicknameCheckSerializer(serializers.Serializer):
         """닉네임 중복 확인"""
         if User.objects.filter(nickname=value).exists():
             raise serializers.ValidationError('이미 사용 중인 닉네임입니다.')
+        return value
+
+class EmailCheckSerializer(serializers.Serializer):
+    """이메일 중복확인 시리얼라이저"""
+    email = serializers.EmailField()
+    
+    def validate_email(self, value):
+        """이메일 중복 확인"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('이미 사용 중인 이메일입니다.')
         return value 

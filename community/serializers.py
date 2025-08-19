@@ -5,13 +5,13 @@ from .ImageSerializer import ImageSerializer
 
 class EmotionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = emotion
+        model = Emotion
         fields = '__all__' 
 
 
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = location
+        model = Location
         fields = '__all__'
 
 
@@ -19,15 +19,17 @@ class MemorySerializer(serializers.ModelSerializer):
     # 입력용: PK 목록/단일 PK를 받아서 모델의 실제 필드(emotion_id/location_id)에 매핑
     emotion_ids = serializers.PrimaryKeyRelatedField(
         source='emotion_id',              
-        queryset=emotion.objects.all(),
+        queryset=Emotion.objects.all(),
         many=True,
-        required=False
+        required=False,
+        write_only=True
     )
     location_id = serializers.PrimaryKeyRelatedField(
     source='location',  # ForeignKey 필드명과 맞추기
-    queryset=location.objects.all(),
+    queryset=Location.objects.all(),
     required=False,
-    allow_null=True
+    allow_null=True,
+    write_only=True
     )
 
     # 출력용: 태그 상세를 함께 내려주고 싶을 때
@@ -36,7 +38,7 @@ class MemorySerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
 
     class Meta:
-        model = memory
+        model = Memory
         fields = [
             'memory_id', 'user_id',  'content',
             'emotion_ids', 'location_id',        # 입력용

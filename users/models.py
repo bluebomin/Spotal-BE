@@ -26,6 +26,7 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractUser):
     # ERD의 user 테이블 구조에 맞춤
+    username = models.CharField(max_length=150, unique=False, blank=True, null=True) 
     email = models.EmailField(unique=True, verbose_name='이메일')
     nickname = models.CharField(max_length=255, verbose_name='닉네임')
     detail = models.CharField(max_length=255, blank=True, verbose_name='회원설명')
