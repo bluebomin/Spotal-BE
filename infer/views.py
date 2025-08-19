@@ -66,20 +66,17 @@ def create_inference_session(request):
         print(f"=== 세션 데이터 추출 ===")
         print(f"session_data: {session_data}")
         
+        # serializer 필드명과 일치
         location_id = session_data['selected_location']
         emotion_ids = session_data['selected_emotions']
         
         print(f"location_id: {location_id} (타입: {type(location_id)})")
         print(f"emotion_ids: {emotion_ids} (타입: {type(emotion_ids)})")
         
-        # 3. 평점 기준 (사용자가 조정 가능)
-        min_rating = request.data.get('min_rating', 4.8)
-        print(f"min_rating: {min_rating}")
-        
-        # 4. Google Maps API + GPT 추천 생성
+        # 3. Google Maps API + GPT 추천 생성 (평점 필터링 없음)
         print(f"=== 추천 시스템 호출 시작 ===")
         recommendations, error_message = get_inference_recommendations(
-            location_id, emotion_ids, min_rating
+            location_id, emotion_ids
         )
         
         if error_message:
@@ -90,7 +87,7 @@ def create_inference_session(request):
         
         print(f"추천 시스템 성공: {recommendations}")
         
-        # 5. 세션 저장
+        # 4. 세션 저장
         print(f"=== 세션 저장 시작 ===")
         session = UserInferenceSession.objects.create(
             user=request.user if request.user.is_authenticated else None,
@@ -99,15 +96,15 @@ def create_inference_session(request):
         session.selected_emotions.set(emotion_ids)
         print(f"세션 저장 완료: {session.session_id}")
         
-        # 6. GPT 추천 결과 저장
+        # 5. GPT 추천 결과 저장
         print(f"=== GPT 추천 결과 저장 ===")
         inference_recommendation = InferenceRecommendation.objects.create(
             session=session,
-            gpt_recommendation_text=recommendations['gpt_recommendations']
+            gpt_recommendation_text=recommendations['gpt_recommendation']
         )
         print(f"GPT 추천 결과 저장 완료: {inference_recommendation.recommendation_id}")
         
-        # 7. 응답 데이터 구성 (필요한 정보만)
+        # 6. 응답 데이터 구성 (필요한 정보만)
         print(f"=== 응답 데이터 구성 ===")
         
         # 가게 정보 단순화 (필요한 정보만)
@@ -126,16 +123,15 @@ def create_inference_session(request):
             'session_id': session.session_id,
             'location': recommendations['location'],
             'emotions': recommendations['emotions'],
-            'min_rating': recommendations['min_rating'],
-            'total_found': recommendations['total_high_rated_found'],
-            'gpt_explanation': recommendations['gpt_recommendations'],
+            'total_places_found': recommendations['total_places_found'],
+            'gpt_recommendation': recommendations['gpt_recommendation'],
             'places': simplified_places
         }
         
         print(f"응답 데이터 구성 완료")
         
         return Response({
-            'message': f"{recommendations['location']}의 평점 {recommendations['min_rating']} 이상 {', '.join(recommendations['emotions'])} 가게 추천이 완료되었습니다!",
+            'message': f"{recommendations['location']}의 {', '.join(recommendations['emotions'])} 가게 추천이 완료되었습니다!",
             'data': response_data
         }, status=status.HTTP_201_CREATED)
         

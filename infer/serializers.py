@@ -17,18 +17,17 @@ class UserInferenceSessionSerializer(serializers.ModelSerializer):
 
 class UserInferenceSessionCreateSerializer(serializers.ModelSerializer):
     """사용자 추론 세션 생성용 시리얼라이저"""
-    location_id = serializers.IntegerField(write_only=True, source='selected_location')
-    emotion_ids = serializers.ListField(
+    selected_location = serializers.IntegerField(write_only=True)
+    selected_emotions = serializers.ListField(
         child=serializers.IntegerField(),
-        write_only=True,
-        source='selected_emotions'
+        write_only=True
     )
     
     class Meta:
         model = UserInferenceSession
-        fields = ['location_id', 'emotion_ids']
+        fields = ['selected_location', 'selected_emotions']
     
-    def validate_emotion_ids(self, value):
+    def validate_selected_emotions(self, value):
         """감정 태그 검증 (최대 3개)"""
         if len(value) > 3:
             raise serializers.ValidationError("감정 태그는 최대 3개까지 선택 가능합니다.")
