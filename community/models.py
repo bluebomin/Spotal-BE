@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.conf import settings
 
 # Create your models here.
 class Emotion(models.Model):
@@ -40,5 +40,28 @@ class Image(models.Model):
 
  
 
+# 북마크
+class Bookmark(models.Model):
+    bookmark_id = models.BigAutoField(primary_key=True)
+    memory = models.ForeignKey(
+        "community.Memory", 
+        on_delete=models.CASCADE, 
+        related_name="bookmarks"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="bookmarks"
+    )
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "bookmark"
+        constraints = [
+            models.UniqueConstraint(fields=["memory", "user"], name="uniq_user_memory_bookmark")
+        ]
+
+    def __str__(self):
+        return f"{self.user} bookmarked {self.memory.id}"
 
    
