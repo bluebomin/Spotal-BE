@@ -13,16 +13,28 @@ from .service.address import *
 @permission_classes([AllowAny]) 
 def store_card(request):
     query = request.GET.get("q")
+    lat = request.GET.get("lat")
+    lng = request.GET.get("lng")
+
     if not query:
         return Response({"message": "검색어(q)가 필요합니다."}, status=400)
+    if not lat or not lng:
+        return Response({"message": "위도(lat), 경도(lng)가 필요합니다."}, status=400)
 
-    # 1. 구글 Place ID 찾기
-    place_id = get_place_id(query)
+    # float 변환 (문자열 → 숫자)
+    try:
+        lat = float(lat)
+        lng = float(lng)
+    except ValueError:
+        return Response({"message": "위도(lat), 경도(lng)는 숫자여야 합니다."}, status=400)
+
+    # 1. 구글 Place ID 찾기 (위치 기반 + 유사도)
+    place_id, place_name = get_place_id(query, lat, lng, threshold=60)
     if not place_id:
         return Response({"message": "구글맵에서 가게를 찾을 수 없습니다."}, status=200)
 
     # 2. 구글 Place 상세 정보
-    details = get_place_details(place_id,query)
+    details = get_place_details(place_id, place_name)
     reviews = [r["text"] for r in details.get("reviews", [])]
 
     # 🔹 영문 → 한국어 변환 처리 (GPT API)
@@ -38,8 +50,8 @@ def store_card(request):
 
     # 4. Emotion 모델 매핑
     emotion_ids = []
-    for name in (tags or []):
-        emotion_obj, _ = Emotion.objects.get_or_create(name=name)
+    for tag_name in (tags or []):
+        emotion_obj, _ = Emotion.objects.get_or_create(name=tag_name)
         emotion_ids.append(emotion_obj.pk)
 
     # 5. 사진 URL 처리
@@ -48,21 +60,24 @@ def store_card(request):
     if photo:
         photo_url = get_photo_url(photo[0]["photo_reference"])  # 첫 번째 사진만
 
-    # 5. DB 저장
+    # 6. DB 저장
     shop_data = {
         "emotion_ids": emotion_ids,
         "name": name_ko or details.get("name"),
         "address": address_ko or details.get("formatted_address"),
         "status": details.get("business_status"),
-        "uptaenm" : details.get("types", [None])[0] or "기타" 
+        "uptaenm": details.get("types", [None])[0] or "기타"
     }
-    serializer = SearchShopSerializer(data=shop_data,context={'previous_address': details.get('previous_address')})
+    serializer = SearchShopSerializer(
+        data=shop_data,
+        context={'previous_address': details.get('previous_address')}
+    )
     serializer.is_valid(raise_exception=True)
     shop = serializer.save()
 
-    # 6. 응답
+    # 7. 응답
     return Response({
-        "message":"가게 정보 반환 성공",
+        "message": "가게 정보 반환 성공",
         "store": serializer.data,
         "latitude": details["geometry"]["location"]["lat"],   # 위도
         "longitude": details["geometry"]["location"]["lng"],  # 경도
@@ -70,6 +85,3 @@ def store_card(request):
         "google_rating": details.get("rating"),
         "photos": photo_url,
     }, status=200)
-
-
-    

@@ -42,7 +42,7 @@ def generate_emotion_tags(details, reviews):
 
     {reviews[:5]}
 
-    위 리뷰를 참고해서 아래 감정 태그 중 1~3개를 골라줘:
+    위 리뷰를 참고해서 아래 감정 태그 중 2개를 골라줘:
     - 정겨움
     - 편안함
     - 조용함
