@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('community', '0008_rename_location_id_memory_location_and_more'),
+        ('community', '0002_initial'),
     ]
 
     operations = [
