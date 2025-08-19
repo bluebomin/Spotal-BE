@@ -5,12 +5,12 @@ from .serializers import SearchShopSerializer
 from community.models import Emotion
 from .service.search import *
 from rest_framework.decorators import permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from .service.address import *
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated]) 
+@permission_classes([AllowAny]) 
 def store_card(request):
     query = request.GET.get("q")
     if not query:
@@ -19,7 +19,7 @@ def store_card(request):
     # 1. 구글 Place ID 찾기
     place_id = get_place_id(query)
     if not place_id:
-        return Response({"message": "구글맵에서 가게를 찾을 수 없습니다."}, status=404)
+        return Response({"message": "구글맵에서 가게를 찾을 수 없습니다."}, status=200)
 
     # 2. 구글 Place 상세 정보
     details = get_place_details(place_id,query)
