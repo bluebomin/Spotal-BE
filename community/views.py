@@ -184,6 +184,7 @@ class ImageViewSet(viewsets.ModelViewSet):
     queryset = Image.objects.all().order_by('-pk')
     serializer_class = ImageSerializer
     parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [AllowAny]
 
     # 이미지 삭제
     def perform_destroy(self, instance):
