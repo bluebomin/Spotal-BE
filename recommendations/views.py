@@ -83,12 +83,17 @@ def recommend_stores(request):
 class PlaceCreateView(generics.CreateAPIView):
     queryset = Place.objects.all()
     serializer_class = PlaceSerializer
-    permission_classes = [AllowAny] # permission 걸고싶으면 permissions.IsAuthenticated로 다시 수정하기 
+    permission_classes = [AllowAny]
 
     
     def perform_create(self, serializer):
         place = serializer.save()
-        AISummary.objects.create(shop=place, summary="gpt 요약이 들어갈 곳!!") ## 아직 gpt 연결 안 함! 더미데이터 넣어서 생성.
+
+        # GPT 요약 생성
+        from .services import generate_place_summary
+        summary_text = generate_place_summary(place)
+        # AI Summary 저장 
+        AISummary.objects.create(shop=place, summary=summary_text) 
 
 
 class PlaceDetailView(generics.RetrieveAPIView):
@@ -142,10 +147,42 @@ class SavedPlaceDeleteView(generics.DestroyAPIView):
 
 # --------------- AISummary (요약) ----------------
 
+# AISummary만 따로 조회
 class AISummaryDetailView(generics.RetrieveAPIView):
     serializer_class = AISummarySerializer
     permission_classes = [permissions.AllowAny]
-    lookup_field = "shop_id"
 
-    def get_queryset(self):
-        return AISummary.objects.all()
+    def get_object(self):
+        shop_id = self.kwargs.get("shop_id")
+        return AISummary.objects.get(shop__shop_id=shop_id)
+    
+
+# AISummary만 따로 생성 (요약 재생성 요청 시 필요)
+class AISummaryCreateUpdateView(generics.CreateAPIView):
+
+    serializer_class = AISummarySerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, shop_id):
+        try:
+            place = Place.objects.get(shop_id=shop_id)
+        except Place.DoesNotExist:
+            return Response({"error": "해당 가게가 존재하지 않습니다."}, status=404)
+
+        # GPT 요약 생성
+        from .services import generate_place_summary
+        summary_text = generate_place_summary(place)
+
+        # 기존 요약 있으면 업데이트, 없으면 새로 생성
+        aisummary, created = AISummary.objects.update_or_create(
+            shop=place,
+            defaults={"summary": summary_text}
+        )
+
+        return Response(
+            {
+                "message": "AI 요약 생성 완료" if created else "AI 요약 갱신 완료",
+                "data": AISummarySerializer(aisummary).data
+            },
+            status=201 if created else 200
+        )

@@ -19,5 +19,5 @@ urlpatterns = [
 
     # AISummary 
     path("places/<int:shop_id>/summary/", views.AISummaryDetailView.as_view(), name="aisummary-detail"), # ai 요약만 따로 확인 
-
+    path("places/<int:shop_id>/summary/create/", views.AISummaryCreateUpdateView.as_view(), name="aisummary-create"), # ai 요약만 새로 생성
 ]

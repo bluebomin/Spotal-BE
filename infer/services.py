@@ -5,10 +5,11 @@ import requests
 from search.models import SearchShop
 from community.models import Emotion, Location
 from search.service.address import normalize_korean_address
+from search.service.summary_card import generate_summary_card, generate_emotion_tags
 
 logger = logging.getLogger(__name__)
 
-def call_gpt_api(prompt, model="gpt-3.5-turbo"):
+def call_gpt_api(prompt, model="gpt-4o-mini"):
     """GPT API 호출 함수"""
     try:
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
@@ -26,8 +27,8 @@ def call_gpt_api(prompt, model="gpt-3.5-turbo"):
         logger.error(f"GPT API 호출 실패: {str(e)}")
         return None
 
-def get_google_places_by_location(location_name, max_results=20):
-    """Google Maps API로 특정 지역의 가게들 조회 (평점 필터링 없음)"""
+def get_google_places_by_location(location_name, max_results=5):
+    """Google Maps API로 특정 지역의 고평점 가게들 조회 (평점 3.8+)"""
     try:
         # Google Places API - Text Search
         url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
@@ -52,26 +53,28 @@ def get_google_places_by_location(location_name, max_results=20):
             logger.error(f"Google Places API 오류: {data['status']}")
             return []
         
-        # 모든 가게 정보 수집 (평점 필터링 없음)
-        places = []
+        # 평점 3.8+ 가게만 필터링 (빠른 응답을 위해)
+        min_rating = 3.8
+        high_rated_places = []
         for place in data['results']:
-            places.append({
-                'place_id': place['place_id'],
-                'name': place['name'],
-                'rating': place.get('rating', 0),
-                'address': place.get('formatted_address', ''),
-                'types': place.get('types', []),
-                'photos': place.get('photos', []),
-                'price_level': place.get('price_level', 0),
-                'geometry': place.get('geometry', {}),
-                'user_ratings_total': place.get('user_ratings_total', 0)
-            })
+            if 'rating' in place and place['rating'] >= min_rating:
+                high_rated_places.append({
+                    'place_id': place['place_id'],
+                    'name': place['name'],
+                    'rating': place['rating'],
+                    'address': place.get('formatted_address', ''),
+                    'types': place.get('types', []),
+                    'photos': place.get('photos', []),
+                    'price_level': place.get('price_level', 0),
+                    'geometry': place.get('geometry', {}),
+                    'user_ratings_total': place.get('user_ratings_total', 0)
+                })
         
-        # 평점순 정렬 (높은 순, 평점이 없는 경우 0으로 처리)
-        places.sort(key=lambda x: x.get('rating', 0), reverse=True)
+        # 평점순 정렬 (높은 순)
+        high_rated_places.sort(key=lambda x: x['rating'], reverse=True)
         
-        logger.info(f"{location_name}에서 가게 {len(places)}개 발견")
-        return places[:max_results]
+        logger.info(f"{location_name}에서 평점 {min_rating}+ 가게 {len(high_rated_places)}개 발견")
+        return high_rated_places[:max_results]
         
     except Exception as e:
         logger.error(f"Google Maps API 호출 실패: {str(e)}")
@@ -146,41 +149,25 @@ def enrich_place_with_details(place_basic, place_details):
         return place_basic
 
 def generate_gpt_emotion_based_recommendations(places, emotions, location):
-    """GPT를 사용하여 감정 기반 가게 추천 생성"""
+    """기존 summary_card.py 함수들을 사용하여 감정 기반 가게 추천 생성"""
     try:
-        # 가게별 요약과 감정 태그 생성
+        # 가게별 요약과 감정 태그 생성 (기존 함수들 재사용)
         enriched_places = []
         
         for place in places:
-            # GPT로 가게별 요약과 감정 태그 생성
-            prompt = f"""
-            다음 가게에 대해 간단한 요약과 감정 태그를 생성해주세요:
+            # 기존 summary_card.py 함수들 사용
+            place_details = {
+                'name': place['name'],
+                'address': place['address'],
+                'rating': place.get('google_rating', 0)
+            }
             
-            가게명: {place['name']}
-            주소: {place['address']}
-            구글 평점: {place['google_rating']}
+            # 리뷰 데이터 (실제로는 Google Maps API에서 가져와야 함)
+            reviews = [f"평점: {place.get('google_rating', 0)}점"]
             
-            요청된 감정: {', '.join(emotions)}
-            
-            다음 형식으로 응답해주세요:
-            요약: (가게의 특징을 1-2문장으로 간단히)
-            감정태그: (요청된 감정 중 가장 적합한 2-3개를 쉼표로 구분)
-            """
-            
-            gpt_response = call_gpt_api(prompt)
-            
-            # GPT 응답 파싱
-            summary = ""
-            emotion_tags = []
-            
-            if gpt_response:
-                lines = gpt_response.split('\n')
-                for line in lines:
-                    if line.startswith('요약:'):
-                        summary = line.replace('요약:', '').strip()
-                    elif line.startswith('감정태그:'):
-                        tags_text = line.replace('감정태그:', '').strip()
-                        emotion_tags = [tag.strip() for tag in tags_text.split(',')]
+            # 기존 함수들로 요약과 감정 태그 생성
+            summary = generate_summary_card(place_details, reviews)
+            emotion_tags = generate_emotion_tags(place_details, reviews)
             
             # 가게 정보에 요약과 감정 태그 추가
             place['summary'] = summary
@@ -206,7 +193,7 @@ def generate_gpt_emotion_based_recommendations(places, emotions, location):
         }
         
     except Exception as e:
-        print(f"GPT 추천 생성 중 오류: {e}")
+        logger.error(f"GPT 추천 생성 중 오류: {e}")
         return None
 
 def get_inference_recommendations(location_id, emotion_ids, max_results=20):
@@ -259,7 +246,6 @@ def get_inference_recommendations(location_id, emotion_ids, max_results=20):
         return None, f"추천 시스템 오류: {str(e)}"
 
         
-# max_results에서 개수 변경 가능
 def get_inference_recommendations_with_custom_rating(location_id, emotion_ids, max_results=6):
     """사용자가 결과 수를 조정할 수 있는 버전"""
     return get_inference_recommendations(location_id, emotion_ids, max_results)
