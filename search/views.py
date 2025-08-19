@@ -36,6 +36,7 @@ def store_card(request):
     # 2. 구글 Place 상세 정보
     details = get_place_details(place_id, place_name)
     reviews = [r["text"] for r in details.get("reviews", [])]
+    uptaenms = details.get("types", [])
 
     # 🔹 영문 → 한국어 변환 처리 (GPT API)
     name = details.get("name")
@@ -45,7 +46,7 @@ def store_card(request):
     address_ko = translate_to_korean(address) if address else None
 
     # 3. GPT 요약 카드 / 감정 태그 생성
-    summary = generate_summary_card(details, reviews)
+    summary = generate_summary_card(details, reviews,uptaenms)
     tags = generate_emotion_tags(details, reviews)
 
     # 4. Emotion 모델 매핑
@@ -66,7 +67,7 @@ def store_card(request):
         "name": name_ko or details.get("name"),
         "address": address_ko or details.get("formatted_address"),
         "status": details.get("business_status"),
-        "uptaenm": details.get("types", [None])[0] or "기타"
+        "uptaenm": ", ".join(details.get("types", [])[:3]) or "기타"
     }
     serializer = SearchShopSerializer(
         data=shop_data,
