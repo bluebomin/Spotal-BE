@@ -25,5 +25,5 @@ urlpatterns = [
     path('search/', include('search.urls')),
     path('community/', include('community.urls')),
     path('api/infer/', include('infer.urls')),
-
+    path('mypage/', include('mypage.urls')),
 ]
