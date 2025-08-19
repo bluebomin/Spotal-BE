@@ -46,7 +46,6 @@ class ImageSerializer(serializers.ModelSerializer):
         instance = Image.objects.create(
             image_url=url,
             image_name=name,
-            # image_key=saved_key,  # 모델에 image_key 추가했으면 함께 저장 추천
             memory_id=mem.pk,
             **validated_data
         )
