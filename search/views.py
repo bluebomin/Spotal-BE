@@ -5,12 +5,12 @@ from .serializers import SearchShopSerializer
 from community.models import Emotion
 from .service.search import *
 from rest_framework.decorators import permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from .service.address import *
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated]) 
+@permission_classes([AllowAny]) 
 def store_card(request):
     query = request.GET.get("q")
     if not query:
