@@ -1,5 +1,5 @@
 import os
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics, permissions
 from .models import *
 from .serializers import *
 from .ImageSerializer import * 
@@ -15,6 +15,10 @@ from rest_framework.permissions import IsAuthenticated
 
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
 
 
 # 커뮤니티 글 응답 메시지 추가를 위한 믹스인
@@ -59,7 +63,7 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
     queryset = Memory.objects.all().order_by('-created_at')
     serializer_class = MemorySerializer
     parser_classes = [MultiPartParser, FormParser]  # 이미지 + 텍스트 같이 받으려면 필요
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
 
 
@@ -115,7 +119,20 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
         # 1. memory 저장
         memory_serializer = self.get_serializer(data=request.data)
         memory_serializer.is_valid(raise_exception=True)
-        memory_instance = memory_serializer.save(user=request.user)
+
+        # user_id를 body로 전달받는 식으로 변경, (다음 7줄의 코드)
+        # 원인: AllowAny로 수정해서 request.user가 AnonymousUser가 되는 문제 발생
+        user_id = request.data.get("user_id") 
+        if not user_id:
+            return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"error": f"user_id {user_id} not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # request.user 대신 user 객체 저장
+        memory_instance = memory_serializer.save(user=user)
+
 
         image_urls = []
         image_files = request.FILES.getlist('images')  # form-data에서 images[] 로 받음
@@ -185,16 +202,73 @@ class ImageViewSet(viewsets.ModelViewSet):
 
 #view
 @api_view(['GET'])
+@permission_classes([AllowAny]) 
 def my_community(request):
-    if request.method == 'GET':
-        user = request.user
-        memories = Memory.objects.filter(user_id=user).order_by('-created_at')
-        serializer = MemorySerializer(memories, many=True)
-        return Response(
+    user_id = request.query_params.get("user_id")
+    if not user_id:
+        return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+    memories = Memory.objects.filter(user_id=user_id).order_by('-created_at')
+    serializer = MemorySerializer(memories, many=True)
+
+    return Response(
         {
             "message": "내가 쓴 글 조회 성공",
             "data": serializer.data
         },
         status=status.HTTP_200_OK
     )
-    return Response({"detail": "Method not allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+# 북마크 생성
+class BookmarkCreateView(generics.CreateAPIView):
+    serializer_class = BookmarkSerializer
+    permission_classes = [AllowAny] 
+
+    def perform_create(self, serializer):
+        user_id = self.request.data.get("user_id")
+        if not user_id:
+            raise ValidationError({"user_id": "user_id is required"})
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            raise ValidationError({"user_id": f"user_id {user_id} not found"})
+
+        serializer.save(user=user)
+
+
+# 북마크 목록 조회
+class BookmarkListView(generics.ListAPIView):
+    serializer_class = BookmarkSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        user_id = self.request.query_params.get("user_id")
+        if not user_id:
+            raise ValidationError({"user_id": "user_id query parameter is required"})
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            raise ValidationError({"user_id": f"user_id {user_id} not found"})
+
+        return Bookmark.objects.filter(user=user).order_by("-created_date")
+
+
+# 북마크 삭제
+class BookmarkDeleteView(generics.DestroyAPIView):
+    serializer_class = BookmarkSerializer
+    permission_classes = [AllowAny]
+    lookup_field = "bookmark_id"
+
+    def get_queryset(self):
+        user_id = self.request.data.get("user_id") or self.request.query_params.get("user_id")
+        if not user_id:
+            raise ValidationError({"user_id": "user_id is required"})
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            raise ValidationError({"user_id": f"user_id {user_id} not found"})
+
+        return Bookmark.objects.filter(user=user)

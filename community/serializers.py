@@ -1,4 +1,3 @@
-# serializers.py
 from rest_framework import serializers
 from .models import *
 from .ImageSerializer import ImageSerializer
@@ -56,3 +55,11 @@ class MemorySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"emotion_ids": "감정 태그는 최대 3개까지 선택 가능합니다."})
         return attrs
 
+
+
+class BookmarkSerializer(serializers.ModelSerializer):
+    memory_content = serializers.CharField(source="memory.content", read_only=True)
+
+    class Meta:
+        model = Bookmark
+        fields = ["bookmark_id", "memory", "user", "memory_content", "created_date"]
