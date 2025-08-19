@@ -22,4 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('community/', include('community.urls')),
+    path('api/recommendations/', include('recommendations.urls')),
+
 ]
