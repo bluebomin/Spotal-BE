@@ -1,5 +1,5 @@
 import os
-from rest_framework import viewsets, status, generics, permissions
+from rest_framework import viewsets, status, generics
 from .models import *
 from .serializers import *
 from .ImageSerializer import * 
@@ -11,8 +11,6 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from .utils import s3_key_from_url
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.permissions import IsAuthenticated
-
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
 from django.contrib.auth import get_user_model

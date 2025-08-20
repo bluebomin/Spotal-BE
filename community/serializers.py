@@ -34,7 +34,7 @@ class MemorySerializer(serializers.ModelSerializer):
     # 출력용: 태그 상세를 함께 내려주고 싶을 때
     emotions = EmotionSerializer(source='emotion_id', many=True, read_only=True)
     location = LocationSerializer(read_only=True) #read_only=True는 출력에만
-    images = ImageSerializer(many=True, read_only=True)
+    images = serializers.SerializerMethodField() 
 
     class Meta:
         model = Memory
@@ -54,6 +54,10 @@ class MemorySerializer(serializers.ModelSerializer):
         if emotions is not None and len(emotions) > 3:
             raise serializers.ValidationError({"emotion_ids": "감정 태그는 최대 3개까지 선택 가능합니다."})
         return attrs
+    
+    def get_images(self, obj):
+        # url만 리스트로 반환
+        return [img.image_url for img in obj.images.all()]
 
 
 
