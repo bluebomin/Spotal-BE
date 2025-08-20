@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.conf import settings
-from .services import call_gpt_api, get_store_recommendation
+from .services import call_gpt_api
 from .models import Place, SavedPlace, AISummary
 from .serializers import PlaceSerializer, SavedPlaceSerializer, AISummarySerializer
 
@@ -62,6 +62,7 @@ def recommend_stores(request):
         }, status=status.HTTP_400_BAD_REQUEST)
     
     # GPT를 통한 가게 추천
+    '''# get_store_recommendation이 없음
     recommendation = get_store_recommendation(closed_store_info, nearby_stores)
     
     if recommendation is None:
@@ -76,7 +77,7 @@ def recommend_stores(request):
         'message': '가게 추천이 완료되었습니다!'
     }, status=status.HTTP_200_OK)
 
-
+'''
 
 # --------------- Place (추천가게) ----------------
 
