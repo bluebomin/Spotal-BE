@@ -166,7 +166,7 @@ def generate_gpt_emotion_based_recommendations(places, emotions, location):
             reviews = [f"평점: {place.get('google_rating', 0)}점"]
             
             # 기존 함수들로 요약과 감정 태그 생성
-            summary = generate_summary_card(place_details, reviews)
+            summary = generate_summary_card(place_details, reviews, place_details.get('uptaenms', ''))
             emotion_tags = generate_emotion_tags(place_details, reviews)
             
             # 가게 정보에 요약과 감정 태그 추가
