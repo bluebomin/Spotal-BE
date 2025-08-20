@@ -5,6 +5,12 @@ import re
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 def generate_summary_card(details, reviews,uptaenms):
+    uptaenms_list = uptaenms if isinstance(uptaenms, list) else [str(uptaenms)]
+
+    # point_of_interest, establishment만 있으면 요약카드 생성하지 않음
+    if set(uptaenms_list).issubset({"point_of_interest", "establishment"}):
+        return ""
+
     prompt = f"""
     아래는 '{details.get("name")}' 의 실제 구글맵 리뷰와 업태구분 일부입니다:
 
@@ -44,11 +50,18 @@ def generate_summary_card(details, reviews,uptaenms):
 
 ALLOWED_TAGS = ["정겨움", "편안함", "조용함", "활기참", "소박함", "세심함"]
 
-def generate_emotion_tags(details, reviews):
+def generate_emotion_tags(details, reviews, uptaenms):
+    # 업태명에 food가 없는 경우 → 바로 빈 리스트 반환
+    uptaenms_str = " ".join(uptaenms) if isinstance(uptaenms, list) else str(uptaenms)
+
+    if "food" not in uptaenms_str.lower():
+        return []
+
     prompt = f"""
     아래는 '{details.get("name")}' 가게의 구글맵 리뷰입니다:
 
     {reviews[:5]}
+    {uptaenms}
 
     위 리뷰를 참고해서 아래 감정 태그 중 2개를 골라줘:
     - 정겨움

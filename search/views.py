@@ -47,7 +47,7 @@ def store_card(request):
 
     # 3. GPT 요약 카드 / 감정 태그 생성
     summary = generate_summary_card(details, reviews,uptaenms)
-    tags = generate_emotion_tags(details, reviews)
+    tags = generate_emotion_tags(details, reviews, uptaenms)
 
     # 4. Emotion 모델 매핑
     emotion_ids = []
