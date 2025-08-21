@@ -16,6 +16,7 @@ class Place(models.Model):
     )
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
+    image_url = models.TextField(blank=True, default="")
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
 

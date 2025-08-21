@@ -27,6 +27,7 @@ class PlaceSerializer(serializers.ModelSerializer):
             "location",      # id
             "location_name", # name (효창동, 후암동 등)
             "ai_summary",
+            "image_url",
             "created_date",
             "modified_date",
         )
@@ -41,6 +42,7 @@ class PlaceSerializer(serializers.ModelSerializer):
 
 # 사용자가 보관한 추천 가게
 class SavedPlaceSerializer(serializers.ModelSerializer):
+    shop = PlaceSerializer()
     class Meta:
         model = SavedPlace
         fields = ("saved_id", "shop", "user", "created_date")

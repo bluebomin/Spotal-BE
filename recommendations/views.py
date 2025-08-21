@@ -4,9 +4,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.conf import settings
-from .services import call_gpt_api, get_store_recommendation
+from .services import call_gpt_api
 from .models import Place, SavedPlace, AISummary
 from .serializers import PlaceSerializer, SavedPlaceSerializer, AISummarySerializer
+from .services import call_gpt_api
+
 
 # Create your views here.
 
@@ -62,7 +64,7 @@ def recommend_stores(request):
         }, status=status.HTTP_400_BAD_REQUEST)
     
     # GPT를 통한 가게 추천
-    recommendation = get_store_recommendation(closed_store_info, nearby_stores)
+    recommendation = call_gpt_api(closed_store_info, nearby_stores)
     
     if recommendation is None:
         return Response({
@@ -90,8 +92,8 @@ class PlaceCreateView(generics.CreateAPIView):
         place = serializer.save()
 
         # GPT 요약 생성
-        from .services import generate_place_summary
-        summary_text = generate_place_summary(place)
+        from .services import generate_gpt_emotion_based_recommendations
+        summary_text = generate_gpt_emotion_based_recommendations(place)
         # AI Summary 저장 
         AISummary.objects.create(shop=place, summary=summary_text) 
 
@@ -170,8 +172,8 @@ class AISummaryCreateUpdateView(generics.CreateAPIView):
             return Response({"error": "해당 가게가 존재하지 않습니다."}, status=404)
 
         # GPT 요약 생성
-        from .services import generate_place_summary
-        summary_text = generate_place_summary(place)
+        from .services import generate_gpt_emotion_based_recommendations
+        summary_text = generate_gpt_emotion_based_recommendations(place)
 
         # 기존 요약 있으면 업데이트, 없으면 새로 생성
         aisummary, created = AISummary.objects.update_or_create(
