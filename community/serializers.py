@@ -55,8 +55,14 @@ class MemorySerializer(serializers.ModelSerializer):
         return attrs
     
     def get_images(self, obj):
-        # url만 리스트로 반환
-        return [img.image_url for img in obj.images.all()]
+        return [
+            {
+                "image_id": img.image_id,
+                "image_url": img.image_url
+            }
+            for img in obj.images.all()
+            ]
+
 
 
 
