@@ -156,6 +156,44 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
 
         headers = self.get_success_headers(memory_serializer.data)
         return Response(memory_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    def update(self, request, *args, **kwargs):
+        
+        instance = self.get_object()
+
+        # 1. 기본 필드 업데이트 (content, emotion_id, location_id 등)
+        memory_serializer = self.get_serializer(instance, data=request.data, partial=True)
+        memory_serializer.is_valid(raise_exception=True)
+        memory_instance = memory_serializer.save()
+
+        # 2. 기존 이미지 삭제 (프론트에서 delete_image_id 로 넘겨줌)
+        delete_id = request.data.getlist("delete_image_ids", [])
+        if delete_id:
+            for img in instance.images.filter(pk__in=delete_id):
+                key = s3_key_from_url(img.image_url, bucket=settings.AWS_STORAGE_BUCKET_NAME)
+                if key:
+                    try:
+                        default_storage.delete(key)
+                    except Exception:
+                        pass
+                img.delete()  # DB에서도 삭제
+
+        # 3. 새 이미지 업로드
+        new_files = request.FILES.getlist("images")
+        for img_file in new_files:
+            file_path = default_storage.save(f"community/{img_file.name}", img_file)
+            file_url = default_storage.url(file_path)
+
+            Image.objects.create(
+                memory=memory_instance,
+                image_url=file_url,
+                image_name=os.path.basename(img_file.name)
+            )
+            return Response(self.get_serializer(memory_instance).data, status=status.HTTP_200_OK)
+
+    
+
+    
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
