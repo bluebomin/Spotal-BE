@@ -14,7 +14,7 @@ class AISummarySerializer(serializers.ModelSerializer):
 class PlaceSerializer(serializers.ModelSerializer):
     emotion_name = serializers.CharField(source="emotion.name", read_only=True)
     location_name = serializers.CharField(source="location.name", read_only=True)
-    ai_summary = AISummarySerializer(many=True, read_only=True)
+    ai_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = Place
@@ -34,8 +34,9 @@ class PlaceSerializer(serializers.ModelSerializer):
         read_only_fields = ("shop_id", "created_date", "modified_date")
 
     def get_ai_summary(self, obj):
-        # 여기서 AI 요약 생성 로직 호출 or 저장된 요약 리턴
-        return getattr(obj, 'ai_summary', None)
+        # Place와 연결된 AISummary 중 최신 하나 가져오기
+        summary = obj.ai_summary.order_by("-created_date").first()
+        return summary.summary if summary else None
 
 
 
