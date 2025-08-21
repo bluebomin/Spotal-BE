@@ -16,12 +16,11 @@ class LocationSerializer(serializers.ModelSerializer):
 
 class MemorySerializer(serializers.ModelSerializer):
     # 입력용: PK 목록/단일 PK를 받아서 모델의 실제 필드(emotion_id/location_id)에 매핑
-    emotion_ids = serializers.PrimaryKeyRelatedField(
-        source='emotion_id',              
-        queryset=Emotion.objects.all(),
-        many=True,
-        required=False,
-        write_only=True
+    emotion_id = serializers.PrimaryKeyRelatedField(
+    queryset=Emotion.objects.all(),
+    many=True,
+    required=False,
+    write_only=True
     )
     location_id = serializers.PrimaryKeyRelatedField(
     source='location',  # ForeignKey 필드명과 맞추기
@@ -40,7 +39,7 @@ class MemorySerializer(serializers.ModelSerializer):
         model = Memory
         fields = [
             'memory_id', 'user_id',  'content',
-            'emotion_ids', 'location_id',        # 입력용
+            'emotion_id', 'location_id',        # 입력용
             'emotions', 'location',              # 출력용
             'created_at', 'updated_at','images'
         ]
@@ -52,7 +51,7 @@ class MemorySerializer(serializers.ModelSerializer):
         if emotions is None and self.instance is not None:
             emotions = self.instance.emotion_id.all()
         if emotions is not None and len(emotions) > 3:
-            raise serializers.ValidationError({"emotion_ids": "감정 태그는 최대 3개까지 선택 가능합니다."})
+            raise serializers.ValidationError({"emotion_id": "감정 태그는 최대 3개까지 선택 가능합니다."})
         return attrs
     
     def get_images(self, obj):
