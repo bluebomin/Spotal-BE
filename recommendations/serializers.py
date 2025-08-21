@@ -40,10 +40,23 @@ class PlaceSerializer(serializers.ModelSerializer):
 
 
 
-# 사용자가 보관한 추천 가게
-class SavedPlaceSerializer(serializers.ModelSerializer):
-    shop = PlaceSerializer()
+# 사용자가 보관한 추천 가게 (SavedPlace)
+
+# 1. 저장(Create/Update)용
+class SavedPlaceCreateSerializer(serializers.ModelSerializer):
+    shop = serializers.PrimaryKeyRelatedField(queryset=Place.objects.all())
+
     class Meta:
         model = SavedPlace
         fields = ("saved_id", "shop", "user", "created_date")
-        read_only_fields = ("saved_id", "created_date") # user는 body에서 직접 넘김ㅋㅋ 
+        read_only_fields = ("saved_id", "created_date") # user는 body에서 직접 넘기도록 
+
+
+# 2. 조회(Read)용
+class SavedPlaceSerializer(serializers.ModelSerializer):
+    shop = PlaceSerializer(read_only=True)  # Place 전체 정보 반환
+
+    class Meta:
+        model = SavedPlace
+        fields = ("saved_id", "shop", "user", "created_date")
+        read_only_fields = ("saved_id", "created_date")
