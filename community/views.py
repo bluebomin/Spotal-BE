@@ -158,42 +158,52 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
         return Response(memory_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
     def update(self, request, *args, **kwargs):
-        
         instance = self.get_object()
 
-        # 1. 기본 필드 업데이트 (content, emotion_id, location_id 등)
-        memory_serializer = self.get_serializer(instance, data=request.data, partial=True)
-        memory_serializer.is_valid(raise_exception=True)
-        memory_instance = memory_serializer.save()
+        # 1) 기본 필드 업데이트
+        ser = self.get_serializer(instance, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        memory = ser.save()
 
-        # 2. 기존 이미지 삭제 (프론트에서 delete_image_id 로 넘겨줌)
-        delete_id = request.data.getlist("delete_image_ids", [])
-        if delete_id:
-            for img in instance.images.filter(pk__in=delete_id):
+        # 2) 삭제 ID 파싱 (deleted_image_ids / delete_image_ids 둘 다 허용)
+        delete_ids = request.data.getlist("deleted_image_ids") or request.data.getlist("delete_image_ids") or []
+        try:
+            delete_ids = list(map(int, delete_ids))
+        except Exception:
+            delete_ids = []
+
+        raw = request.data.get("deleted_image_ids")
+        if isinstance(raw, str) and raw.strip().startswith("["):
+            import json
+            try:
+                delete_ids = list(map(int, json.loads(raw)))
+            except Exception:
+                pass
+
+        if delete_ids:
+            for img in instance.images.filter(pk__in=delete_ids):
                 key = s3_key_from_url(img.image_url, bucket=settings.AWS_STORAGE_BUCKET_NAME)
                 if key:
                     try:
                         default_storage.delete(key)
                     except Exception:
                         pass
-                img.delete()  # DB에서도 삭제
+                img.delete()
 
-        # 3. 새 이미지 업로드
+        # 3) 새 이미지 업로드 (모두 저장)
         new_files = request.FILES.getlist("images")
-        for img_file in new_files:
-            file_path = default_storage.save(f"community/{img_file.name}", img_file)
-            file_url = default_storage.url(file_path)
-
+        for f in new_files:
+            path = default_storage.save(f"community/{f.name}", f)
+            url  = default_storage.url(path)
             Image.objects.create(
-                memory=memory_instance,
-                image_url=file_url,
-                image_name=os.path.basename(img_file.name)
+                memory=memory,
+                image_url=url,
+                image_name=os.path.basename(f.name),
             )
-            return Response(self.get_serializer(memory_instance).data, status=status.HTTP_200_OK)
 
-    
-
-    
+        # 4) ✅ 루프 밖에서 항상 한 번만 반환 (새 파일이 0장이어도 반환됨)
+        return Response(self.get_serializer(memory).data, status=status.HTTP_200_OK)
+        
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
