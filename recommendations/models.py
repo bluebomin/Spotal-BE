@@ -35,6 +35,8 @@ class AISummary(models.Model):
         related_name="ai_summary"
     )
     summary = models.TextField()
+    created_date = models.DateTimeField(auto_now_add=True)  
+    modified_date = models.DateTimeField(auto_now=True)   
 
     class Meta:
         db_table = "ai_summary"
