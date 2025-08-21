@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from django.conf import settings
 from .services import call_gpt_api
 from .models import Place, SavedPlace, AISummary
-from .serializers import PlaceSerializer, SavedPlaceSerializer, AISummarySerializer
+from .serializers import *
 from .services import call_gpt_api
 
 
@@ -109,7 +109,7 @@ class PlaceDetailView(generics.RetrieveAPIView):
 
 class SavedPlaceCreateView(generics.CreateAPIView):
     queryset = SavedPlace.objects.all()
-    serializer_class = SavedPlaceSerializer
+    serializer_class = SavedPlaceCreateSerializer
     permission_classes = [permissions.AllowAny]
 
 
