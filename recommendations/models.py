@@ -4,9 +4,8 @@ from django.conf import settings
 # 추천 가게
 class Place(models.Model):
     shop_id = models.BigAutoField(primary_key=True)
-    emotion = models.ForeignKey(
+    emotions = models.ManyToManyField(
         "community.Emotion",   
-        on_delete=models.PROTECT,
         related_name="places"
     )
     location = models.ForeignKey(
