@@ -62,5 +62,5 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SavedPlace
-        fields = ("saved_id", "shop", "user", "created_date")
-        read_only_fields = ("saved_id", "created_date")
+        fields = ("saved_id", "shop", "user")
+        read_only_fields = ("saved_id",)
