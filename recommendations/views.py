@@ -1,99 +1,64 @@
 from django.shortcuts import render
 from rest_framework import status, generics, permissions
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.conf import settings
-from .services import call_gpt_api, get_store_recommendation
 from .models import Place, SavedPlace, AISummary
-from .serializers import PlaceSerializer, SavedPlaceSerializer, AISummarySerializer
+from .serializers import *
+from rest_framework.views import APIView
+from .services.recommendation_service import generate_recommendations
 
 # Create your views here.
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def test_gpt(request):
-    """GPT API 테스트용 엔드포인트"""
-    prompt = request.data.get('prompt', '안녕하세요! 간단한 인사말을 해주세요.')
-    
-    if not prompt:
-        return Response({
-            'error': '프롬프트를 입력해주세요.'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    # 디버깅: API 키 상태 확인
-    api_key = getattr(settings, 'OPENAI_API_KEY', None)
-    if not api_key:
-        return Response({
-            'error': 'OpenAI API 키가 설정되지 않았습니다.',
-            'debug_info': 'OPENAI_API_KEY가 settings에 없습니다.'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    # GPT API 호출
-    response = call_gpt_api(prompt)
-    
-    if response is None:
-        return Response({
-            'error': 'GPT API 호출에 실패했습니다.',
-            'debug_info': f'API 키: {api_key[:10]}... (앞 10자리만 표시)'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    return Response({
-        'prompt': prompt,
-        'response': response,
-        'message': 'GPT API 호출 성공!'
-    }, status=status.HTTP_200_OK)
+# 추천가게 생성 
+class RecommendationView(APIView):
+    """추천 가게 생성 & 응답 API"""
+    permission_classes = [AllowAny]
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def recommend_stores(request):
-    """가게 추천 API"""
-    closed_store_info = request.data.get('closed_store_info', '')
-    nearby_stores = request.data.get('nearby_stores', [])
-    
-    if not closed_store_info:
-        return Response({
-            'error': '폐업한 가게 정보를 입력해주세요.'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    if not nearby_stores:
-        return Response({
-            'error': '주변 가게 목록을 입력해주세요.'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    # GPT를 통한 가게 추천
-    recommendation = get_store_recommendation(closed_store_info, nearby_stores)
-    
-    if recommendation is None:
-        return Response({
-            'error': '가게 추천에 실패했습니다.'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    return Response({
-        'closed_store_info': closed_store_info,
-        'nearby_stores': nearby_stores,
-        'recommendation': recommendation,
-        'message': '가게 추천이 완료되었습니다!'
-    }, status=status.HTTP_200_OK)
+    def post(self, request):
+        name = request.data.get("name")
+        address = request.data.get("address")
+        emotion_names = request.data.get("emotion_tags", [])
+
+        if not name or not address or not emotion_names:
+            return Response(
+                {"error": "name, address, emotion_tags는 필수 입력값입니다."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # 추천 로직 실행 (Google + GPT)
+            candidate_places = generate_recommendations(name, address, emotion_names)[:8]  # 최대 8개 추천
+
+            response_data = []
+            for place_data in candidate_places:
+                # Place 저장
+                place = Place.objects.create(
+                    name=place_data["name"],
+                    address=place_data["address"],
+                    image_url=place_data.get("image_url", ""),
+                    location=place_data["location_obj"]
+                )
+                place.emotions.set(place_data["emotion_objs"])
+
+                # AISummary 저장
+                AISummary.objects.create(shop=place, summary=place_data["summary"])
+
+                # 직렬화해서 응답 데이터에 추가
+                response_data.append(PlaceSerializer(place).data)
+
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response(
+                {"error": f"추천 생성 중 오류 발생: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 
 # --------------- Place (추천가게) ----------------
 
-class PlaceCreateView(generics.CreateAPIView):
-    queryset = Place.objects.all()
-    serializer_class = PlaceSerializer
-    permission_classes = [AllowAny]
-
-    
-    def perform_create(self, serializer):
-        place = serializer.save()
-
-        # GPT 요약 생성
-        from .services import generate_place_summary
-        summary_text = generate_place_summary(place)
-        # AI Summary 저장 
-        AISummary.objects.create(shop=place, summary=summary_text) 
 
 
 class PlaceDetailView(generics.RetrieveAPIView):
@@ -107,7 +72,7 @@ class PlaceDetailView(generics.RetrieveAPIView):
 
 class SavedPlaceCreateView(generics.CreateAPIView):
     queryset = SavedPlace.objects.all()
-    serializer_class = SavedPlaceSerializer
+    serializer_class = SavedPlaceCreateSerializer
     permission_classes = [permissions.AllowAny]
 
 
@@ -170,8 +135,8 @@ class AISummaryCreateUpdateView(generics.CreateAPIView):
             return Response({"error": "해당 가게가 존재하지 않습니다."}, status=404)
 
         # GPT 요약 생성
-        from .services import generate_place_summary
-        summary_text = generate_place_summary(place)
+        from .services import generate_gpt_emotion_based_recommendations
+        summary_text = generate_gpt_emotion_based_recommendations(place)
 
         # 기존 요약 있으면 업데이트, 없으면 새로 생성
         aisummary, created = AISummary.objects.update_or_create(

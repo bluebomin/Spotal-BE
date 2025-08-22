@@ -7,20 +7,19 @@ import os
 from .models import Image, Memory
 
 class ImageSerializer(serializers.ModelSerializer):
-    # 응답용 가짜 id 필드 (모델 필드 아님) -> pk를 그대로 노출
     id = serializers.ReadOnlyField(source="pk")
 
-    # 업로드용 파일 필드 (모델 필드 아님)
     image = serializers.ImageField(write_only=True)
     memory_id = serializers.PrimaryKeyRelatedField(
         queryset=Memory.objects.all(),
-        write_only=True,  # 입력용이므로 읽기 전용 아님
+        write_only=True,
         required=True
     )
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Image
-        fields = ["id", "image", "image_url", "image_name","memory_id"]  # 모델 외 커스텀 필드 포함 OK
+        fields = ["id", "image", "image_url", "image_name", "memory_id"]
         read_only_fields = ["id", "image_url", "image_name"]
 
     def validate_image(self, file):
@@ -38,16 +37,17 @@ class ImageSerializer(serializers.ModelSerializer):
         ext = os.path.splitext(file.name)[1]
 
         key = f"community/images/{date.today():%Y/%m/%d}/{uuid4().hex}{ext}"
-        saved_key = default_storage.save(key, file)
-
-        url = default_storage.url(saved_key)
+        saved_key = default_storage.save(key, file)  # S3 Key만 저장
         name = os.path.basename(saved_key)
 
         instance = Image.objects.create(
-            image_url=url,
+            image_url=saved_key,   # URL 대신 Key 저장
             image_name=name,
-            # image_key=saved_key,  # 모델에 image_key 추가했으면 함께 저장 추천
             memory_id=mem.pk,
             **validated_data
         )
         return instance
+
+    def get_image_url(self, obj):
+        # ✅ 매번 serializer 호출 시 presigned URL 새로 생성
+        return default_storage.url(obj.image_url)

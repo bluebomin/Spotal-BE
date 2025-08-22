@@ -57,9 +57,11 @@ INSTALLED_APPS = [
     'recommendations',
     'search',
     'infer',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -142,26 +144,31 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # S3 settings
+
+# settings.py
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ap-northeast-2")
+
 STORAGES = {
-    'default': {
-        'BACKEND': 'storages.backends.s3.S3Storage',
-        'OPTIONS': {
-            'bucket_name': env('AWS_STORAGE_BUCKET_NAME'),
-            'region_name': env('AWS_S3_REGION_NAME',default='ap-northeast-2'),  # 기본 리전 설정
-            'location':"media",
-            'default_acl': None,  # 기본 ACL 설정
-            'querystring_auth': True,  
-            'file_overwrite': False,  # 파일 덮어쓰기 방지
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": env("AWS_STORAGE_BUCKET_NAME"),
+            "region_name": env("AWS_S3_REGION_NAME", default="ap-northeast-2"),
+            "location": "media",
+            "default_acl": None,         # 기본 ACL 없음
+            "querystring_auth": False,   # presigned 말고 퍼블릭 URL
+            "file_overwrite": False,     # 같은 파일명 덮어쓰기 방지
         },
     },
-    'staticfiles': {
-        'BACKEND': 'storages.backends.s3.S3Storage',
-        'OPTIONS': {
-            'bucket_name': os.getenv('AWS_STORAGE_BUCKET_NAME'),
-            'region_name': os.getenv('AWS_S3_REGION_NAME', default='ap-northeast-2'),  # 기본 리전 설정
-            'location': "static",
-            'default_acl': None,  # 기본 ACL 설정
-            'querystring_auth': False,
+    "staticfiles": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": env("AWS_STORAGE_BUCKET_NAME"),
+            "region_name": env("AWS_S3_REGION_NAME", default="ap-northeast-2"),
+            "location": "static",
+            "default_acl": None,
+            "querystring_auth": False,   # 퍼블릭 URL
         },
     },
 }
@@ -189,3 +196,9 @@ GOOGLE_API_KEY = config('GOOGLE_API_KEY')
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",  
 ]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True

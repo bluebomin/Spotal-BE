@@ -4,9 +4,8 @@ from django.conf import settings
 # 추천 가게
 class Place(models.Model):
     shop_id = models.BigAutoField(primary_key=True)
-    emotion = models.ForeignKey(
+    emotions = models.ManyToManyField(
         "community.Emotion",   
-        on_delete=models.PROTECT,
         related_name="places"
     )
     location = models.ForeignKey(
@@ -16,6 +15,7 @@ class Place(models.Model):
     )
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
+    image_url = models.TextField(blank=True, default="")
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
 
@@ -34,6 +34,8 @@ class AISummary(models.Model):
         related_name="ai_summary"
     )
     summary = models.TextField()
+    created_date = models.DateTimeField(auto_now_add=True)  
+    modified_date = models.DateTimeField(auto_now=True)   
 
     class Meta:
         db_table = "ai_summary"
