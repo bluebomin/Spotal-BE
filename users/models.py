@@ -30,7 +30,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True, verbose_name='이메일')
     nickname = models.CharField(max_length=255, verbose_name='닉네임')
     detail = models.CharField(max_length=255, blank=True, verbose_name='회원설명',
-                              default="따뜻함을 좋아하는 감성탐험가")
+                              default="따뜻함을 좋아하는 감성탐험가") # 회원가입할 때 아무것도 안 적으면 소개글 이렇게 생성됨! 
     
     # username 필드 대신 email을 사용자 식별자로 사용
     USERNAME_FIELD = 'email'
