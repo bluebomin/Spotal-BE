@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Place, AISummary, SavedPlace
+from .models import *
+from community.models import *
 
 
 # AI 요약 정보
@@ -7,13 +8,17 @@ class AISummarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AISummary
-        fields = ("summary_id", "summary")
-        read_only_fields = ("summary_id",)
+        fields = ("summary_id", "summary", "created_date")
+        read_only_fields = ("summary_id", "created_date")
 
 # AI 추천 가게 정보
 class PlaceSerializer(serializers.ModelSerializer):
-    emotion_name = serializers.CharField(source="emotion.name", read_only=True)
-    location_name = serializers.CharField(source="location.name", read_only=True)
+    emotions = serializers.SlugRelatedField( # emotions 여러 개 내려줄 수 있도록 수정
+        many=True,
+        read_only=True,
+        slug_field="name"   # Emotion 모델의 name 필드 사용
+    )   
+    location = serializers.CharField(source="location.name", read_only=True)
     ai_summary = serializers.SerializerMethodField()
 
     class Meta:
@@ -22,10 +27,8 @@ class PlaceSerializer(serializers.ModelSerializer):
             "shop_id",
             "name",
             "address",
-            "emotion",       # id
-            "emotion_name",  # name (정겨움, 세심함 등)
-            "location",      # id
-            "location_name", # name (효창동, 후암동 등)
+            "emotions",      # [ "정겨움", "힐링" ] 
+            "location",      # "청파동"
             "ai_summary",
             "image_url",
             "created_date",
