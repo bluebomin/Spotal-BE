@@ -69,7 +69,7 @@ def get_place_details(place_id, place_name=None):
     url = "https://maps.googleapis.com/maps/api/place/details/json"
     params = {
         "place_id": place_id,
-        "fields": "name,formatted_address,geometry,rating,types,photos,business_status",
+        "fields": "name,formatted_address,geometry,rating,types,photos,business_status,reviews",
         "language": "ko",
         "key": settings.GOOGLE_API_KEY
     }

@@ -37,6 +37,7 @@ def store_card(request):
     details = get_place_details(place_id, place_name)
     reviews = [r["text"] for r in details.get("reviews", [])]
     uptaenms = details.get("types", [])
+    print(reviews[0])
 
     # 🔹 영문 → 한국어 변환 처리 (GPT API)
     name = details.get("name")
@@ -75,6 +76,9 @@ def store_card(request):
     )
     serializer.is_valid(raise_exception=True)
     shop = serializer.save()
+
+
+    print(details.keys())
 
     # 7. 응답
     return Response({

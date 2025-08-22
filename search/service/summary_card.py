@@ -2,8 +2,6 @@ from openai import OpenAI
 from django.conf import settings
 import re
 
-import re
-
 def extract_keywords(reviews):
     if not reviews:
         return []
@@ -15,15 +13,16 @@ def extract_keywords(reviews):
     조건:
     - 반드시 명사만 출력 (메뉴 이름, 음식, 음료, 서비스 특징)
     - '음식', '맛', '분위기' 같은 추상적/일반적 단어는 제외
-    - 실제 메뉴 이름(예: 삼겹살, 콩나물국밥, 아메리카노 등)이나 서비스 특징(예: 친절함, 청결)만 남겨라
+    - 실제 메뉴 이름(예: 삼겹살, 콩나물국밥, 아메리카노 등)이나 서비스 특징(예: 친절함, 청결)만 남겨
     - 반드시 쉼표(,)로 구분해서 출력
+    - 반드시 사실에 기반해서만 출력
 
     리뷰:
     {text}
     """
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
         temperature=0,
     )
@@ -53,6 +52,7 @@ def generate_summary_card(details, reviews, uptaenms):
     prompt = f"""
     아래는 '{details.get("name")}' 의 구글맵 리뷰입니다:
 
+
     {reviews[:5]}
     키워드: {keywords}
 
@@ -61,7 +61,7 @@ def generate_summary_card(details, reviews, uptaenms):
     - 리뷰에 나온 키워드({keywords}) 중 최소 1개는 반드시 포함해야 한다
     - 없는 사실은 절대 추가하지 마
     - "맛있는 음식", "다양한 음식", "좋은 분위기" 같은 추상적 표현 금지
-    - 무조건 한국어로만 요약 작성
+    - 그 가게의 대표 메뉴에 대해 언급할 것
     - 업태 구분명은 참고만 하고, 문장에 직접 "음식점, 카페, 역" 같은 단어는 쓰지 마
     - 장소가 가게일 수도 있고 아닐 수도 있으므로 '가게'라는 단어를 쓰지 마
     - 리뷰가 1개뿐이어도, 핵심 키워드를 반드시 포함해 요약
@@ -74,17 +74,13 @@ def generate_summary_card(details, reviews, uptaenms):
     """
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
         temperature=0  # 사실 기반 요약
     )
 
     summary = response.choices[0].message.content.strip()
 
-    # ✅ 후처리: 키워드 반드시 포함시키기
-    if keywords:
-        if not any(kw in summary for kw in keywords):
-            summary = f"{summary.rstrip('.')} ({keywords[0]})"
 
     return summary
 
@@ -114,14 +110,17 @@ def generate_emotion_tags(details, reviews, uptaenms):
     - 소박함
     - 세심함
 
-    반드시 쉼표(,)로만 구분해서 출력해.
-    예시: 정겨움, 편안함
+    - 반드시 쉼표(,)로만 구분해서 출력해.
+    - 항상 서로 다른 성격의 감정을 고르고, 동일한 패턴이 반복되지 않도록 해줘.
+    - 같은 조합을 연속으로 추천하지 말 것.
+    - 리뷰에 직접적으로 드러나지 않는 부분이라도 합리적으로 추측해서 감정을 다양하게 반영할 것.
+  
     """
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0,
+        temperature=0.8,
     )
 
     raw_text = response.choices[0].message.content.strip()
