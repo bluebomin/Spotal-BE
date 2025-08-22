@@ -75,6 +75,15 @@ class SavedPlaceCreateView(generics.CreateAPIView):
     serializer_class = SavedPlaceCreateSerializer
     permission_classes = [permissions.AllowAny]
 
+    # summary_snapshot에 최신 ai요약 저장해 놓기 
+    def perform_create(self, serializer):
+        saved_place = serializer.save()
+        # 해당 Place의 최신 요약 가져오기
+        last_summary = saved_place.shop.ai_summary.order_by("-created_date").first()
+        if last_summary:
+            saved_place.summary_snapshot = last_summary.summary
+            saved_place.save()
+
 
 
 class SavedPlaceListView(generics.ListAPIView):
