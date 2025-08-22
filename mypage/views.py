@@ -1,17 +1,21 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from .models import User, Bookmark, SavedPlace
+from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
+
+from community.models import Bookmark
+from recommendations.models import SavedPlace
 from .serializers import UserSerializer, BookmarkSerializer, SavedPlaceSerializer
+
+User = get_user_model()
+
 
 class MyPageView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request, user_id):   # URL path로 user_id 받음
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=404)
+    def get(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
 
         bookmarks = Bookmark.objects.filter(user=user)
         saved_places = SavedPlace.objects.filter(user=user)
@@ -19,9 +23,6 @@ class MyPageView(APIView):
         data = {
             "user": UserSerializer(user).data,
             "bookmarks": BookmarkSerializer(bookmarks, many=True).data,
-            "saved_places": SavedPlaceSerializer(saved_places, many=True).data
+            "saved_places": SavedPlaceSerializer(saved_places, many=True).data, 
         }
         return Response(data)
-
-## 완성 안 되었음! 장소 이미지 구글 api 연동 후, 북마크 되는지 테스트 해 봐야 함~!!
-## 그 이후에 마이페이지 뷰 완성할 수 있음 ......
