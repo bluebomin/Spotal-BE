@@ -34,9 +34,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-^c*8d*pmfc^%&z@6c@8a=ilioa3_r6&gk94hrt5+*(fa**+u%z'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+# DEBUG and ALLOWED_HOSTS are now configured below using environment variables
 
 
 # Application definition
@@ -96,8 +94,15 @@ WSGI_APPLICATION = 'spotal.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': env('DB_NAME', default='spotal_db'),
+        'USER': env('DB_USER', default='root'),
+        'PASSWORD': env('DB_PASSWORD', default=''),
+        'HOST': env('DB_HOST', default='localhost'),
+        'PORT': env('DB_PORT', default='3306'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
 }
 
@@ -199,6 +204,13 @@ AUTHENTICATION_BACKENDS = [
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "http://spotal-fe-bucket.s3-website.ap-northeast-2.amazonaws.com",
+    "https://spotal-fe-bucket.s3-website.ap-northeast-2.amazonaws.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# 프로덕션 환경 설정
+DEBUG = env('DEBUG', default=False)
+SECRET_KEY = env('SECRET_KEY', default='django-insecure-^c*8d*pmfc^%&z@6c@8a=ilioa3_r6&gk94hrt5+*(fa**+u%z')
+ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='13.124.195.6').split(',')
