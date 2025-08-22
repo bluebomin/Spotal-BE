@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from community.models import Bookmark, Memory, Image
+from community.models import Bookmark
 from recommendations.models import SavedPlace
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -7,8 +7,9 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "nickname", "detail"]
-        
+        fields = ["nickname", "detail"]
+        read_only_fields = ["detail"] # 우선 세부설명은 수정 못하도록 명시해둠. 
+
 
 class BookmarkSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
