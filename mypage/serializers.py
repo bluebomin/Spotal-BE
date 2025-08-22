@@ -8,24 +8,18 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "nickname", "detail"]
-
-class ImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Image
-        fields = ["image_url"]
-
-class CommunitySummarySerializer(serializers.ModelSerializer):
-    images = ImageSerializer(many=True, read_only=True) 
-    class Meta:
-        model = Memory
-        fields = ["images"]
+        
 
 class BookmarkSerializer(serializers.ModelSerializer):
-    post = CommunitySummarySerializer(source="memory") 
+    images = serializers.SerializerMethodField()
+
     class Meta:
         model = Bookmark
-        fields = ["created_date", "post"]
+        fields = ["images"]
 
+    def get_images(self, obj):
+        return [image.image_url for image in obj.memory.images.all()]
+    # 북마크된 커뮤니티 게시글(memory)에 연결된 이미지들의 url만 추출
 
 
 class SavedPlaceSerializer(serializers.ModelSerializer):
