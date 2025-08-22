@@ -56,6 +56,7 @@ class SavedPlace(models.Model):
         on_delete=models.CASCADE,
         related_name="saved_places"
     )
+    summary_snapshot = models.TextField(blank=True, default="") # 저장 당시의 요약을 보관, 장소보관 시 ai요약이 재생성되지 않고 저장했을 당시의 버전으로 저장됨
     created_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
