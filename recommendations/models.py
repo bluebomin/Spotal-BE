@@ -4,7 +4,7 @@ from django.conf import settings
 # 추천 가게
 class Place(models.Model):
     shop_id = models.BigAutoField(primary_key=True)
-    emotion = models.ManyToManyField(
+    emotions = models.ManyToManyField(
         "community.Emotion",   
         related_name="places"
     )
