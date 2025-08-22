@@ -91,7 +91,7 @@ class SavedPlaceListView(generics.ListAPIView):
 
 
 class SavedPlaceDeleteView(generics.DestroyAPIView):
-    serializer_class = SavedPlaceSerializer
+    serializer_class = SavedPlaceCreateSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = "saved_id"
 
