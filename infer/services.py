@@ -224,28 +224,32 @@ def generate_gpt_emotion_based_recommendations(places, emotions, location):
         logger.error(f"GPT 추천 생성 중 오류: {e}")
         return None
 
-def get_inference_recommendations(location_id, emotion_ids, max_results=10):  # 20 → 10으로 감소
+def get_inference_recommendations(location_ids, emotion_ids, max_results=10):  # location_id → location_ids로 변경
     """사용자 선택 기반 추천 시스템 메인 함수 - 추천 로직에 집중"""
     try:
         # 1. 동네와 감정 정보 가져오기
-        location = Location.objects.get(pk=location_id)
+        locations = Location.objects.filter(pk__in=location_ids)
         emotions = Emotion.objects.filter(pk__in=emotion_ids)
         
-        if not location or not emotions.exists():
+        if not locations.exists() or not emotions.exists():
             return None, "동네 또는 감정 정보를 찾을 수 없습니다."
         
-        location_name = location.name
+        location_names = [location.name for location in locations]
         emotion_names = [emotion.name for emotion in emotions]
         
-        # 2. Google Maps API로 지역 기반 가게 조회 (더 적은 수로 제한)
-        places = get_google_places_by_location(location_name, max_results)
+        # 2. 여러 동네에서 Google Maps API로 가게 조회
+        all_places = []
+        for location_name in location_names:
+            places = get_google_places_by_location(location_name, max_results // len(location_names))
+            if places:
+                all_places.extend(places)
         
-        if not places:
-            return None, f"{location_name} 지역에서 가게를 찾을 수 없습니다."
+        if not all_places:
+            return None, f"{', '.join(location_names)} 지역에서 가게를 찾을 수 없습니다."
         
         # 3. 각 가게의 상세 정보 보강 (실제 리뷰 포함, 상위 3개만)
         enriched_places = []
-        for place in places[:3]:  # 상위 3개만 처리하여 시간 단축
+        for place in all_places[:3]:  # 상위 3개만 처리하여 시간 단축
             # Google Places API에서 상세 정보와 리뷰 가져오기
             place_details = get_place_details_with_reviews(place['place_id'])
             enriched_place = enrich_place_with_details(place, place_details)
@@ -253,7 +257,7 @@ def get_inference_recommendations(location_id, emotion_ids, max_results=10):  # 
         
         # 4. GPT가 감정 기반으로 최종 추천 (infer 앱만의 추천 로직)
         gpt_recommendations = generate_gpt_emotion_based_recommendations(
-            enriched_places, emotion_names, location_name
+            enriched_places, emotion_names, ', '.join(location_names)
         )
         
         if not gpt_recommendations:
@@ -261,9 +265,9 @@ def get_inference_recommendations(location_id, emotion_ids, max_results=10):  # 
         
         # 5. 최종 결과 반환 (추천 결과 구조화)
         return {
-            'location': location_name,
+            'location': ', '.join(location_names),  # 여러 동네명을 쉼표로 구분
             'emotions': emotion_names,
-            'total_places_found': len(places),
+            'total_places_found': len(all_places),
             'gpt_recommendation': gpt_recommendations['overall_recommendation'],
             'top_places': gpt_recommendations['places']
         }, None
@@ -272,6 +276,6 @@ def get_inference_recommendations(location_id, emotion_ids, max_results=10):  # 
         logger.error(f"추천 시스템 실행 실패: {str(e)}")
         return None, f"추천 시스템 오류: {str(e)}"
 
-def get_inference_recommendations_with_custom_rating(location_id, emotion_ids, max_results=6):
+def get_inference_recommendations_with_custom_rating(location_ids, emotion_ids, max_results=6):
     """사용자가 결과 수를 조정할 수 있는 버전"""
-    return get_inference_recommendations(location_id, emotion_ids, max_results)
+    return get_inference_recommendations(location_ids, emotion_ids, max_results)
