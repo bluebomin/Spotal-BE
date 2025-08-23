@@ -9,11 +9,6 @@ history_df = pd.read_csv(CSV_PATH)
 
 # Google API Helper
 def get_place_id(query, lat, lng, threshold=60):
-    """
-    현재 위치(lat, lng) + 검색어(query)로 가장 가까운 가게 찾기
-    - 1차: 위치 기반 검색 (rankby=distance)
-    - 2차: 문자열 유사도 검사 (fallback)
-    """
     url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
     params = {
         "query": query,
@@ -22,22 +17,26 @@ def get_place_id(query, lat, lng, threshold=60):
         "language": "ko",
         "key": settings.GOOGLE_API_KEY
     }
-
     res = requests.get(url, params=params).json()
     candidates = res.get("results", [])
     if not candidates:
         return None, None
 
-    # 가장 가까운 후보
+    # 1. 정확히 일치하는 이름 있으면 최우선
+    for c in candidates:
+        if c["name"] == query:
+            return c["place_id"], c["name"]
+
+    # 2. 가장 가까운 후보
     nearest = candidates[0]
     place_name = nearest["name"]
+    
 
-    # 문자열 유사도 검사
+    # 3. 유사도 검사
     similarity = fuzz.partial_ratio(query.lower(), place_name.lower())
     print(f"[DEBUG] 검색어={query}, 구글결과={place_name}, 유사도={similarity}")
 
     if similarity < threshold:
-        # 유사도가 낮으면 fallback → 여러 후보 중 가장 유사한 것 선택
         best_match = max(
             candidates,
             key=lambda c: fuzz.ratio(query.lower(), c["name"].lower()),

@@ -39,7 +39,7 @@ def store_card(request):
     uptaenms = details.get("types", [])
     print(reviews[0])
 
-    # 🔹 영문 → 한국어 변환 처리 (GPT API)
+    # 영문 → 한국어 변환 처리 (GPT API)
     name = details.get("name")
     address = details.get("formatted_address")
 

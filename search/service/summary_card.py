@@ -87,14 +87,10 @@ def generate_summary_card(details, reviews, uptaenms):
 # 감정태그생성
 
 
-ALLOWED_TAGS = ["정겨움", "편안함", "조용함", "활기참", "소박함", "세심함"]
+ALLOWED_TAGS = ["정겨움", "편안함", "조용함", "활기참", "소박함", "세심함", "정성스러움", "깔끔함", "친절함", "고즈넉함",
+                "현대적임", "전통적임", "독특함", "화려함", "낭만적임", "가족적임", "전문적임","아늑함","편리함","트렌디함"]
 
 def generate_emotion_tags(details, reviews, uptaenms):
-    # 업태명에 food가 없는 경우 → 바로 빈 리스트 반환
-    uptaenms_str = " ".join(uptaenms) if isinstance(uptaenms, list) else str(uptaenms)
-
-    if "food" not in uptaenms_str.lower():
-        return []
 
     prompt = f"""
     아래는 '{details.get("name")}' 가게의 구글맵 리뷰입니다:
@@ -109,6 +105,22 @@ def generate_emotion_tags(details, reviews, uptaenms):
     - 활기참
     - 소박함
     - 세심함
+    - 정성스러움
+    - 깔끔함
+    - 친절함
+    - 고즈넉함
+    - 현대적임
+    - 전통적임
+    - 독특함
+    - 화려함
+    - 낭만적임
+    - 가족적임
+    - 전문적임
+    - 아늑함
+    - 편리함
+    - 트렌디함
+    
+    
 
     - 반드시 쉼표(,)로만 구분해서 출력해.
     - 항상 서로 다른 성격의 감정을 고르고, 동일한 패턴이 반복되지 않도록 해줘.
