@@ -249,19 +249,53 @@ class ImageViewSet(viewsets.ModelViewSet):
 
 #view
 @api_view(['GET'])
-@permission_classes([AllowAny]) 
+@permission_classes([AllowAny])
 def my_community(request):
+    # 1) user_id 필수
     user_id = request.query_params.get("user_id")
-    if not user_id:
-        return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-    memories = Memory.objects.filter(user_id=user_id).order_by('-created_at')
-    serializer = MemorySerializer(memories, many=True)
+    if not user_id or not str(user_id).isdigit():
+        return Response({"error": "user_id is required and must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
+    user_id = int(user_id)
 
+    # 2) 기본 쿼리셋
+    qs = (
+        Memory.objects
+        .filter(user_id=user_id)
+        .select_related('location')
+        .prefetch_related('emotion_id')   # 모델에서 사용중인 related name에 맞추세요
+        .order_by('-created_at')
+    )
+
+    # 3) 위치 필터 (단일)
+    loc = request.query_params.get('location_id')
+    if loc:
+        if not str(loc).isdigit():
+            raise ValidationError({"location_id": "정수 ID여야 합니다."})
+        loc = int(loc)
+        if not Location.objects.filter(pk=loc).exists():
+            raise ValidationError({"location_id": f"존재하지 않는 위치 ID {loc}"})
+        qs = qs.filter(location_id=loc)
+
+    # 4) 감정 필터 (다중: emotion_ids=1,3,5)
+    raw = request.query_params.get('emotion_ids')
+    if raw:
+        try:
+            ids = [int(x) for x in raw.split(',') if x.strip()]
+        except ValueError:
+            raise ValidationError({"emotion_ids": "정수 ID 목록이어야 합니다."})
+
+        missing = [i for i in ids if not Emotion.objects.filter(pk=i).exists()]
+        if missing:
+            raise ValidationError({"emotion_ids": f"존재하지 않는 감정 ID: {missing}"})
+
+        # 선택한 모든 감정을 가진 항목만
+        qs = qs.annotate(
+            sel_count=Count('emotion_id', filter=Q(emotion_id__in=ids), distinct=True)
+        ).filter(sel_count=len(ids))
+
+    serializer = MemorySerializer(qs, many=True)
     return Response(
-        {
-            "message": "내가 쓴 글 조회 성공",
-            "data": serializer.data
-        },
+        {"message": "내가 쓴 글 조회 성공", "data": serializer.data},
         status=status.HTTP_200_OK
     )
 
