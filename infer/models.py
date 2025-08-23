@@ -18,6 +18,9 @@ class Place(models.Model):
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
     image_url = models.TextField(blank=True, default="")
+    google_rating = models.FloatField(default=0.0, verbose_name='Google 평점')
+    reviews = models.JSONField(default=list, blank=True, verbose_name='Google 리뷰 데이터')
+    place_types = models.JSONField(default=list, blank=True, verbose_name='Google 장소 타입')
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
 
@@ -37,6 +40,8 @@ class AISummary(models.Model):
         related_name="ai_summary"
     )
     summary = models.TextField(verbose_name='GPT 추천 텍스트')
+    emotion_tags = models.JSONField(default=list, blank=True, verbose_name='생성된 감정 태그')
+    reviews_snapshot = models.JSONField(default=list, blank=True, verbose_name='요약 생성 시점의 리뷰 스냅샷')
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
 
