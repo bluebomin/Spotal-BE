@@ -6,6 +6,7 @@ from search.models import SearchShop
 from community.models import Emotion, Location
 from search.service.address import normalize_korean_address
 from search.service.summary_card import generate_summary_card, generate_emotion_tags
+from search.service.search import get_place_details, get_place_id
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ def call_gpt_api(prompt, model="gpt-4o-mini"):
         return None
 
 def get_google_places_by_location(location_name, max_results=5):
-    """Google Maps API로 특정 지역의 고평점 가게들 조회 (평점 3.8+)"""
+    """Google Maps API로 특정 지역의 고평점 가게들 조회"""
     try:
         # Google Places API - Text Search
         url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
@@ -41,7 +42,7 @@ def get_google_places_by_location(location_name, max_results=5):
             'key': settings.GOOGLE_API_KEY,
             'language': 'ko',
             'region': 'kr',
-            'type': 'restaurant',  # 음식점 타입
+            'type': 'restaurant',
         }
         
         response = requests.get(url, params=params)
@@ -53,7 +54,7 @@ def get_google_places_by_location(location_name, max_results=5):
             logger.error(f"Google Places API 오류: {data['status']}")
             return []
         
-        # 평점 3.8+ 가게만 필터링 (빠른 응답을 위해)
+        # 평점 3.8+ 가게만 필터링
         min_rating = 3.8
         high_rated_places = []
         for place in data['results']:
@@ -70,7 +71,7 @@ def get_google_places_by_location(location_name, max_results=5):
                     'user_ratings_total': place.get('user_ratings_total', 0)
                 })
         
-        # 평점순 정렬 (높은 순)
+        # 평점순 정렬
         high_rated_places.sort(key=lambda x: x['rating'], reverse=True)
         
         logger.info(f"{location_name}에서 평점 {min_rating}+ 가게 {len(high_rated_places)}개 발견")
@@ -107,74 +108,72 @@ def get_place_details_with_reviews(place_id):
         logger.error(f"Place Details API 호출 실패: {str(e)}")
         return None
 
-def get_place_photo_url(photo_reference, max_width=400):
-    """Google Places API로 가게 사진 URL 생성"""
-    try:
-        base_url = "https://maps.googleapis.com/maps/api/place/photo"
-        params = {
-            'maxwidth': max_width,
-            'photoreference': photo_reference,
-            'key': settings.GOOGLE_API_KEY
-        }
-        
-        # 실제 사진 URL을 반환하지 않고, 프론트엔드에서 사용할 수 있는 URL 생성
-        photo_url = f"{base_url}?maxwidth={max_width}&photoreference={photo_reference}&key={settings.GOOGLE_API_KEY}"
-        return photo_url
-        
-    except Exception as e:
-        logger.error(f"사진 URL 생성 실패: {str(e)}")
-        return None
-
 def enrich_place_with_details(place_basic, place_details):
     """기본 정보와 상세 정보를 결합하여 가게 정보를 풍부하게 만듦"""
     try:
-        # 주소 정규화 (한국어로 변환)
+        # 주소 정규화 (search 앱 서비스 활용)
         normalized_address = normalize_korean_address(place_details.get('formatted_address', ''))
         
-        # 가게 정보 단순화 (필요한 정보만)
+        # 리뷰 데이터 추출
+        reviews = []
+        if 'reviews' in place_details:
+            for review in place_details['reviews'][:5]:  # 상위 5개 리뷰만
+                reviews.append({
+                    'text': review.get('text', ''),
+                    'rating': review.get('rating', 0),
+                    'time': review.get('time', 0)
+                })
+        
+        # 가게 정보 단순화
         enriched_place = {
             'name': place_basic.get('name', ''),
             'address': normalized_address,
-            'status': '운영 중',  # 기본값
-            'summary': '',  # GPT가 생성할 예정
-            'emotion_tags': [],  # GPT가 생성할 예정
+            'status': '운영 중',
+            'summary': '',
+            'emotion_tags': [],
             'google_rating': place_basic.get('rating', 0),
-            'place_id': place_basic.get('place_id', '')
+            'place_id': place_basic.get('place_id', ''),
+            'types': place_basic.get('types', []),
+            'reviews': reviews,  # 실제 리뷰 데이터
+            'user_ratings_total': place_details.get('user_ratings_total', 0)
         }
         
         return enriched_place
         
     except Exception as e:
-        print(f"가게 정보 풍부화 중 오류: {e}")
+        logger.error(f"가게 정보 풍부화 중 오류: {e}")
         return place_basic
 
 def generate_gpt_emotion_based_recommendations(places, emotions, location):
-    """기존 summary_card.py 함수들을 사용하여 감정 기반 가게 추천 생성"""
+    """감정 기반 가게 추천 생성 - search 앱 서비스 활용"""
     try:
-        # 가게별 요약과 감정 태그 생성 (기존 함수들 재사용)
         enriched_places = []
         
         for place in places:
-            # 기존 summary_card.py 함수들 사용
+            # search 앱의 summary_card 서비스 활용
             place_details = {
                 'name': place['name'],
                 'address': place['address'],
                 'rating': place.get('google_rating', 0)
             }
             
-            # 리뷰 데이터 (실제로는 Google Maps API에서 가져와야 함)
-            reviews = [f"평점: {place.get('google_rating', 0)}점"]
+            # 실제 리뷰 데이터 사용 (더 이상 가짜 데이터 아님)
+            reviews = []
+            if 'reviews' in place and place['reviews']:
+                reviews = [review.get('text', '') for review in place['reviews']]
+            else:
+                reviews = [f"평점: {place.get('google_rating', 0)}점"]
             
-            # 기존 함수들로 요약과 감정 태그 생성
-            summary = generate_summary_card(place_details, reviews, place_details.get('uptaenms', ''))
-            emotion_tags = generate_emotion_tags(place_details, reviews)
+            # search 앱 서비스로 요약과 감정 태그 생성
+            summary = generate_summary_card(place_details, reviews, place.get('types', []))
+            emotion_tags = generate_emotion_tags(place_details, reviews, place.get('types', []))
             
             # 가게 정보에 요약과 감정 태그 추가
             place['summary'] = summary
             place['emotion_tags'] = emotion_tags
             enriched_places.append(place)
         
-        # 전체 추천 설명 생성
+        # 전체 추천 설명 생성 (infer 앱만의 추천 로직)
         overall_prompt = f"""
         {location}에서 {', '.join(emotions)} 감정을 느낄 수 있는 가게들을 추천해드립니다.
         
@@ -197,7 +196,7 @@ def generate_gpt_emotion_based_recommendations(places, emotions, location):
         return None
 
 def get_inference_recommendations(location_id, emotion_ids, max_results=20):
-    """사용자 선택 기반 추천 시스템 메인 함수 - Google Maps API + GPT"""
+    """사용자 선택 기반 추천 시스템 메인 함수 - 추천 로직에 집중"""
     try:
         # 1. 동네와 감정 정보 가져오기
         location = Location.objects.get(pk=location_id)
@@ -209,22 +208,21 @@ def get_inference_recommendations(location_id, emotion_ids, max_results=20):
         location_name = location.name
         emotion_names = [emotion.name for emotion in emotions]
         
-        # 2. Google Maps API로 지역 기반 가게 조회 (평점 필터링 없음)
-        places = get_google_places_by_location(
-            location_name, max_results
-        )
+        # 2. Google Maps API로 지역 기반 가게 조회
+        places = get_google_places_by_location(location_name, max_results)
         
         if not places:
             return None, f"{location_name} 지역에서 가게를 찾을 수 없습니다."
         
-        # 3. 각 가게의 상세 정보 보강
+        # 3. 각 가게의 상세 정보 보강 (실제 리뷰 포함)
         enriched_places = []
         for place in places:
+            # Google Places API에서 상세 정보와 리뷰 가져오기
             place_details = get_place_details_with_reviews(place['place_id'])
             enriched_place = enrich_place_with_details(place, place_details)
             enriched_places.append(enriched_place)
         
-        # 4. GPT가 감정 기반으로 최종 추천
+        # 4. GPT가 감정 기반으로 최종 추천 (infer 앱만의 추천 로직)
         gpt_recommendations = generate_gpt_emotion_based_recommendations(
             enriched_places, emotion_names, location_name
         )
@@ -232,7 +230,7 @@ def get_inference_recommendations(location_id, emotion_ids, max_results=20):
         if not gpt_recommendations:
             return None, "GPT 추천 생성에 실패했습니다."
         
-        # 5. 최종 결과 반환 
+        # 5. 최종 결과 반환 (추천 결과 구조화)
         return {
             'location': location_name,
             'emotions': emotion_names,
@@ -245,7 +243,6 @@ def get_inference_recommendations(location_id, emotion_ids, max_results=20):
         logger.error(f"추천 시스템 실행 실패: {str(e)}")
         return None, f"추천 시스템 오류: {str(e)}"
 
-        
 def get_inference_recommendations_with_custom_rating(location_id, emotion_ids, max_results=6):
     """사용자가 결과 수를 조정할 수 있는 버전"""
     return get_inference_recommendations(location_id, emotion_ids, max_results)
