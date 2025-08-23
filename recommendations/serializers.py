@@ -20,6 +20,7 @@ class PlaceSerializer(serializers.ModelSerializer):
     )   
     location = serializers.CharField(source="location.name", read_only=True)
     ai_summary = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Place
@@ -31,6 +32,7 @@ class PlaceSerializer(serializers.ModelSerializer):
             "location",      # "청파동"
             "ai_summary",
             "image_url",
+            "status",
             "created_date",
             "modified_date",
         )
@@ -40,6 +42,9 @@ class PlaceSerializer(serializers.ModelSerializer):
         # Place와 연결된 AISummary 중 최신 하나 가져오기
         summary = obj.ai_summary.order_by("-created_date").first()
         return summary.summary if summary else None
+    
+    def get_status(self, obj):
+        return "운영중"
 
 
 
@@ -70,6 +75,7 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
         slug_field="name",
         source="shop.emotions"   # Place.emotions → string 배열
     )
+    status = serializers.SerializerMethodField()    
 
     class Meta:
         model = SavedPlace
@@ -83,6 +89,7 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
             "location",
             "image_url",
             "summary",
+            "status",
             "created_date",
         )
         read_only_fields = ("saved_id", "created_date")
@@ -90,3 +97,6 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
     def get_summary(self, obj):
         summary = obj.shop.ai_summary.order_by("-created_date").first()
         return summary.summary if summary else None
+    
+    def get_status(self, obj):
+        return "운영중"  

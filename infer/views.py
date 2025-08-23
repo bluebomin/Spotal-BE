@@ -160,7 +160,7 @@ def create_inference_session(request):
         # 3. Google Maps API + GPT 추천 생성 (평점 필터링 없음)
         print(f"=== 추천 시스템 호출 시작 ===")
         recommendations, error_message = get_inference_recommendations(
-            location_id, emotion_ids
+            location_id, emotion_ids  # location_id는 이미 리스트
         )
         
         if error_message:
@@ -174,9 +174,10 @@ def create_inference_session(request):
         # 4. 세션 저장
         print(f"=== 세션 저장 시작 ===")
         session = UserInferenceSession.objects.create(
-            user=request.user if request.user.is_authenticated else None,
-            selected_location_id=location_id
+            user=request.user if request.user.is_authenticated else None
         )
+        # ManyToManyField 설정
+        session.selected_location.set(location_id)
         session.selected_emotions.set(emotion_ids)
         print(f"세션 저장 완료: {session.session_id}")
         
@@ -190,7 +191,7 @@ def create_inference_session(request):
                 name=place_data.get('name', ''),
                 address=place_data.get('address', ''),
                 image_url=place_data.get('image_url', ''),
-                location_id=location_id
+                location_id=location_id[0]  # 첫 번째 동네를 기본으로 설정
             )
             
             # 감정 태그 설정
@@ -214,7 +215,7 @@ def create_inference_session(request):
                 'name': place.name,
                 'address': place.address,
                 'emotions': [emotion.name for emotion in place.emotions.all()],
-                'location': recommendations['location'],
+                'location': place.location.name,  # Place 모델의 location 필드 사용
                 'ai_summary': ai_summary.summary,
                 'image_url': place.image_url,
                 'created_date': place.created_date.isoformat(),
@@ -223,7 +224,7 @@ def create_inference_session(request):
         
         print(f"데이터 저장 완료: {len(saved_places)}개 장소")
         
-        # 6. 응답 데이터 구성
+        # 6. 응답 데이터 구성 - recommendations와 동일한 구조
         print(f"=== 응답 데이터 구성 ===")
         response_data = {
             'session_id': session.session_id,
@@ -231,7 +232,7 @@ def create_inference_session(request):
             'emotions': recommendations['emotions'],
             'total_places_found': recommendations['total_places_found'],
             'gpt_recommendation': recommendations['gpt_recommendation'],
-            'places': saved_places
+            'places': saved_places  # recommendations와 동일한 구조
         }
         
         print(f"응답 데이터 구성 완료")

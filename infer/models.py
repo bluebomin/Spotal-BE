@@ -56,7 +56,7 @@ class UserInferenceSession(models.Model):
     """사용자의 추론 세션 (동네 + 감정 선택)"""
     session_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
-    selected_location = models.ForeignKey('community.Location', on_delete=models.CASCADE, verbose_name='선택된 동네')
+    selected_location = models.ManyToManyField('community.Location', verbose_name='선택된 동네들')
     selected_emotions = models.ManyToManyField('community.Emotion', verbose_name='선택된 감정들')
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -67,8 +67,9 @@ class UserInferenceSession(models.Model):
         verbose_name_plural = "사용자 추론 세션들"
     
     def __str__(self):
+        location_names = ", ".join([location.name for location in self.selected_location.all()])
         emotion_names = ", ".join([emotion.name for emotion in self.selected_emotions.all()])
-        return f"{self.selected_location.name} - {emotion_names} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
+        return f"{location_names} - {emotion_names} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
 
 
 class InferenceRecommendation(models.Model):
