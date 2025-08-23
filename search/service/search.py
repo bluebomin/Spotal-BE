@@ -8,6 +8,8 @@ CSV_PATH = os.path.join(settings.BASE_DIR, "data", "용산구이전가게.csv")
 history_df = pd.read_csv(CSV_PATH)
 
 # Google API Helper
+
+
 def get_place_id(query, lat, lng, threshold=60):
     url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
     params = {
@@ -79,7 +81,7 @@ def get_place_details(place_id, place_name=None):
         print("검색 키워드:", place_name, "→ 정규화:", normalized_name)
 
         if not match.empty:
-            # ✅ 여기서 실제 CSV 컬럼명 확인
+            # 여기서 실제 CSV 컬럼명 확인
             col_name = "이전 전 상세 주소" if "이전 전 상세 주소" in match.columns else "이전 전 주소"
             previous_address = match.iloc[0][col_name]
 
