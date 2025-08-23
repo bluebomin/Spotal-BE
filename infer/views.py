@@ -87,26 +87,19 @@ def get_inference_options(request):
         201: {
             'description': '추천 생성 성공',
             'examples': {
-                'application/json': {
-                    'message': '홍대의 행복, 설렘 가게 추천이 완료되었습니다!',
-                    'data': {
-                        'session_id': 1,
-                        'location': '홍대',
+                'application/json': [
+                    {
+                        'shop_id': 1,
+                        'name': '행복카페',
+                        'address': '서울 마포구 홍대로 123',
                         'emotions': ['행복', '설렘'],
-                        'total_places_found': 5,
-                        'gpt_recommendation': '홍대에서 행복과 설렘을 느낄 수 있는 가게들을 추천합니다...',
-                        'places': [
-                            {
-                                'place_id': 1,
-                                'name': '행복카페',
-                                'address': '서울 마포구 홍대로 123',
-                                'image_url': 'https://...',
-                                'summary': '행복한 분위기의 카페입니다...',
-                                'emotion_tags': ['행복', '설렘']
-                            }
-                        ]
+                        'location': '홍대',
+                        'ai_summary': '행복한 분위기의 카페입니다...',
+                        'image_url': 'https://...',
+                        'created_date': '2025-08-22T18:36:39.183419',
+                        'modified_date': '2025-08-22T18:36:39.183419'
                     }
-                }
+                ]
             }
         },
         400: {
@@ -224,23 +217,13 @@ def create_inference_session(request):
         
         print(f"데이터 저장 완료: {len(saved_places)}개 장소")
         
-        # 6. 응답 데이터 구성 - recommendations와 동일한 구조
+        # 6. 응답 데이터 구성 - 프론트가 기대하는 구조 (places 배열만)
         print(f"=== 응답 데이터 구성 ===")
-        response_data = {
-            'session_id': session.session_id,
-            'location': recommendations['location'],
-            'emotions': recommendations['emotions'],
-            'total_places_found': recommendations['total_places_found'],
-            'gpt_recommendation': recommendations['gpt_recommendation'],
-            'places': saved_places  # recommendations와 동일한 구조
-        }
         
         print(f"응답 데이터 구성 완료")
         
-        return Response({
-            'message': f"{recommendations['location']}의 {', '.join(recommendations['emotions'])} 가게 추천이 완료되었습니다!",
-            'data': response_data
-        }, status=status.HTTP_201_CREATED)
+        # 프론트가 기대하는 구조: places 배열만 반환
+        return Response(saved_places, status=status.HTTP_201_CREATED)
         
     except Exception as e:
         print(f"=== 뷰 함수 오류 발생 ===")
