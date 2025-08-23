@@ -3,6 +3,50 @@ from django.conf import settings
 
 # Create your models here.
 
+class Place(models.Model):
+    """추천 장소 정보"""
+    shop_id = models.BigAutoField(primary_key=True)
+    emotions = models.ManyToManyField(
+        "community.Emotion",   
+        related_name="infer_places"
+    )
+    location = models.ForeignKey(
+        "community.Location",   
+        on_delete=models.PROTECT,
+        related_name="infer_places"
+    )
+    name = models.CharField(max_length=255)
+    address = models.CharField(max_length=255)
+    image_url = models.TextField(blank=True, default="")
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "infer_place"
+
+    def __str__(self):
+        return self.name
+
+
+class AISummary(models.Model):
+    """GPT 기반 추천 결과 요약"""
+    summary_id = models.BigAutoField(primary_key=True)
+    place = models.ForeignKey(
+        Place,
+        on_delete=models.CASCADE,
+        related_name="ai_summary"
+    )
+    summary = models.TextField(verbose_name='GPT 추천 텍스트')
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "infer_ai_summary"
+
+    def __str__(self):
+        return f"Summary for {self.place.name}"
+
+
 class UserInferenceSession(models.Model):
     """사용자의 추론 세션 (동네 + 감정 선택)"""
     session_id = models.AutoField(primary_key=True)
@@ -21,11 +65,12 @@ class UserInferenceSession(models.Model):
         emotion_names = ", ".join([emotion.name for emotion in self.selected_emotions.all()])
         return f"{self.selected_location.name} - {emotion_names} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
 
+
 class InferenceRecommendation(models.Model):
-    """GPT 기반 추천 결과"""
+    """추론 세션별 추천 결과"""
     recommendation_id = models.AutoField(primary_key=True)
     session = models.ForeignKey(UserInferenceSession, on_delete=models.CASCADE, related_name='recommendations')
-    gpt_recommendation_text = models.TextField(verbose_name='GPT 추천 텍스트')
+    place = models.ForeignKey(Place, on_delete=models.CASCADE, related_name='inference_recommendations', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -35,4 +80,7 @@ class InferenceRecommendation(models.Model):
         verbose_name_plural = "추론 추천 결과들"
     
     def __str__(self):
-        return f"추천 결과 {self.recommendation_id} - {self.session}"
+        if self.place:
+            return f"추천 결과 {self.recommendation_id} - {self.place.name} ({self.session})"
+        else:
+            return f"추천 결과 {self.recommendation_id} - {self.session}"
