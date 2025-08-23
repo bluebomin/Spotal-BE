@@ -42,6 +42,33 @@ def extract_keywords(reviews):
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 def generate_summary_card(details, reviews, uptaenms):
+
+    # 리뷰가 없거나 모두 공백인 경우
+    if not reviews or all(not r.strip() for r in reviews):
+
+        prompt = f"""
+        '{details.get("name")}' 은/는 어떤 곳인지 설명해 주세요.
+        업태 구분명({', '.join(uptaenms)}) / '{details.get("rating")}'과 '{details.get("formatted_address")}'을 참고할 수 있습니다.
+        조건:
+        - 반드시 1문장, 간결하게 작성
+        - 문장은 '~~한 곳이에요', '~~로 사랑받는 곳이에요', '~~을 즐길 수 있는 곳이에요'로 끝낼 것
+
+
+        예시:
+        - "두툼한 삼겹살과 푸짐한 반찬으로 회식에 인기 있는 곳이에요"
+        - "시원한 콩나물국밥으로 아침 손님에게 사랑받는 곳이에요!"
+        - "환승이 편리하고 주변 상권 접근성이 좋은 교통 요지 입니다"
+        """
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5  # 약간의 창의성 허용
+        )
+        summary = response.choices[0].message.content.strip()
+
+        return summary
+   
     keywords = extract_keywords(reviews)
     uptaenms_list = uptaenms if isinstance(uptaenms, list) else [str(uptaenms)]
 

@@ -82,9 +82,6 @@ def store_card(request):
     serializer.is_valid(raise_exception=True)
     shop = serializer.save()
 
-
-    print(details.keys())
-
     # 7. 응답
     return Response({
         "message": "가게 정보 반환 성공",
