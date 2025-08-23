@@ -1,6 +1,28 @@
 from rest_framework import serializers
-from .models import UserInferenceSession, InferenceRecommendation
+from .models import UserInferenceSession, InferenceRecommendation, Place, AISummary
 from community.serializers import LocationSerializer, EmotionSerializer
+
+class PlaceSerializer(serializers.ModelSerializer):
+    """장소 정보 시리얼라이저"""
+    emotions = EmotionSerializer(many=True, read_only=True)
+    location = LocationSerializer(read_only=True)
+    
+    class Meta:
+        model = Place
+        fields = [
+            'shop_id', 'name', 'address', 'image_url', 
+            'emotions', 'location', 'created_date', 'modified_date'
+        ]
+        read_only_fields = ['shop_id', 'created_date', 'modified_date']
+
+class AISummarySerializer(serializers.ModelSerializer):
+    """AI 요약 시리얼라이저"""
+    place = PlaceSerializer(read_only=True)
+    
+    class Meta:
+        model = AISummary
+        fields = ['summary_id', 'place', 'summary', 'created_date', 'modified_date']
+        read_only_fields = ['summary_id', 'created_date', 'modified_date']
 
 class UserInferenceSessionSerializer(serializers.ModelSerializer):
     """사용자 추론 세션 시리얼라이저"""
@@ -38,8 +60,9 @@ class UserInferenceSessionCreateSerializer(serializers.ModelSerializer):
 class InferenceRecommendationSerializer(serializers.ModelSerializer):
     """추론 추천 결과 시리얼라이저"""
     session = UserInferenceSessionSerializer(read_only=True)
+    place = PlaceSerializer(read_only=True)
     
     class Meta:
         model = InferenceRecommendation
-        fields = ['recommendation_id', 'session', 'gpt_recommendation_text', 'created_at']
-        read_only_fields = ['recommendation_id', 'session', 'created_at']
+        fields = ['recommendation_id', 'session', 'place', 'created_at']
+        read_only_fields = ['recommendation_id', 'session', 'place', 'created_at']

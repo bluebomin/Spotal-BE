@@ -175,13 +175,16 @@ AUTH_USER_MODEL = 'users.User'
 
 # Django REST Framework 설정
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        #'rest_framework_simplejwt.authentication.JWTAuthentication',
-       # 'rest_framework.authentication.SessionAuthentication', # 세션으로 하면 로그인이 일부 안 되는 문제 발생 
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Spotal Backend API',
+    'DESCRIPTION': 'Spotal 프로젝트의 백엔드 API 명세서',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': '/api/',
 }
 
 OPENAI_API_KEY = config('OPENAI_API_KEY')
