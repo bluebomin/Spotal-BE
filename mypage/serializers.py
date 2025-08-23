@@ -1,0 +1,46 @@
+from rest_framework import serializers
+from community.models import Bookmark
+from recommendations.models import SavedPlace
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["nickname", "detail"]
+        read_only_fields = ["detail"] # 우선 세부설명은 수정 못하도록 명시해둠. 
+
+
+class BookmarkSerializer(serializers.ModelSerializer):
+    images = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Bookmark
+        fields = ["images"]
+
+    def get_images(self, obj):
+        return [image.image_url for image in obj.memory.images.all()]
+    # 북마크된 커뮤니티 게시글(memory)에 연결된 이미지들의 url만 추출
+
+
+class SavedPlaceSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="shop.name", read_only=True)
+    address = serializers.CharField(source="shop.address", read_only=True)
+    image_url = serializers.CharField(source="shop.image_url", read_only=True)
+    emotions = serializers.SlugRelatedField(
+        source="shop.emotions",
+        many=True,
+        read_only=True,
+        slug_field="name"
+    )
+    summary = serializers.CharField(source="summary_snapshot", read_only=True)
+
+    class Meta:
+        model = SavedPlace
+        fields = [
+            "name",
+            "address",
+            "image_url",
+            "emotions",
+            "summary",
+        ]

@@ -37,8 +37,9 @@ def store_card(request):
     details = get_place_details(place_id, place_name)
     reviews = [r["text"] for r in details.get("reviews", [])]
     uptaenms = details.get("types", [])
+    print(reviews[0])
 
-    # 🔹 영문 → 한국어 변환 처리 (GPT API)
+    # 영문 → 한국어 변환 처리 (GPT API)
     name = details.get("name")
     address = details.get("formatted_address")
 
@@ -47,7 +48,7 @@ def store_card(request):
 
     # 3. GPT 요약 카드 / 감정 태그 생성
     summary = generate_summary_card(details, reviews,uptaenms)
-    tags = generate_emotion_tags(details, reviews)
+    tags = generate_emotion_tags(details, reviews, uptaenms)
 
     # 4. Emotion 모델 매핑
     emotion_ids = []
@@ -75,6 +76,9 @@ def store_card(request):
     )
     serializer.is_valid(raise_exception=True)
     shop = serializer.save()
+
+
+    print(details.keys())
 
     # 7. 응답
     return Response({
