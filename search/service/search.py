@@ -58,37 +58,47 @@ def get_chosung(text: str) -> str:
     ])
 
 
-def get_place_id(query, lat, lng, threshold=60):
-    query = normalize_hangul(query)
-    url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-    params = {
-        "query": query,
-        "location": f"{lat},{lng}",
-        "rankby": "distance",
-        "language": "ko",
-        "key": settings.GOOGLE_API_KEY
-    }
-    res = requests.get(url, params=params).json()
-    candidates = res.get("results", [])
+def get_place_id(query, lat, lng, threshold=90):
+    def search_google(q):
+        url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+        params = {
+            "query": q,
+            "location": f"{lat},{lng}",
+            "rankby": "distance",
+            "language": "ko",
+            "key": settings.GOOGLE_API_KEY
+        }
+        res = requests.get(url, params=params).json()
+        return res.get("results", [])
+
+    # 1차: 원본 검색
+    candidates = search_google(query)
+    if not candidates:
+        # 2차: 교정된 검색어로 재시도
+        norm_query = normalize_hangul(query)
+        if norm_query != query:
+            print(f"[DEBUG] 원본 검색 실패, 교정 후 재검색: {norm_query}")
+            candidates = search_google(norm_query)
+
     if not candidates:
         print(f"[DEBUG] 구글검색 실패, query={query}")
         return None, None
 
-    # 1. 정확히 일치하는 이름 있으면 최우선
-    for c in candidates:
-        if c["name"] == query:
-            return c["place_id"], c["name"]
-
-    # 2. 가장 가까운 후보
+    # --- 이하 동일 ---
     nearest = candidates[0]
     place_name = nearest["name"]
-    
 
     # 3. 유사도 검사
-    similarity = fuzz.partial_ratio(query.lower(), place_name.lower())
+    similarity = fuzz.ratio(query.lower(), place_name.lower())
     print(f"[DEBUG] 검색어={query}, 구글결과={place_name}, 유사도={similarity}")
 
+# 부분 일치 100점 보정
+    if similarity == 100 and len(query) != len(place_name):
+        print("[DEBUG] 부분 일치 100점 → 페널티 적용")
+        similarity = 80
+
     if similarity < threshold:
+    # fallback: candidates 전체 중에서 query와 가장 비슷한 것 찾기
         best_match = max(
             candidates,
             key=lambda c: fuzz.ratio(query.lower(), c["name"].lower()),
@@ -103,6 +113,9 @@ def get_place_id(query, lat, lng, threshold=60):
             return None, None
 
     return nearest["place_id"], place_name
+
+
+
 
 
 def get_place_details(place_id, place_name=None):
