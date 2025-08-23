@@ -72,8 +72,13 @@ def store_card(request):
     }
     serializer = SearchShopSerializer(
         data=shop_data,
-        context={'previous_address': details.get('previous_address')}
+        context={
+            'previous_address': details.get('previous_address'),
+            'previous_lat': details.get('previous_lat'),
+            'previous_lng': details.get('previous_lng')
+        }
     )
+
     serializer.is_valid(raise_exception=True)
     shop = serializer.save()
 
