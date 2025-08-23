@@ -15,4 +15,3 @@ requests>=2.31.0
 pandas
 
 django-cors-headers
-drf-spectacular==0.27.1

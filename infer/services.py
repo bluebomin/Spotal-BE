@@ -28,6 +28,24 @@ def call_gpt_api(prompt, model="gpt-4o-mini"):
         logger.error(f"GPT API 호출 실패: {str(e)}")
         return None
 
+def get_place_photo_url(photo_reference, max_width=400):
+    """Google Places API로 가게 사진 URL 생성"""
+    try:
+        base_url = "https://maps.googleapis.com/maps/api/place/photo"
+        params = {
+            'maxwidth': max_width,
+            'photoreference': photo_reference,
+            'key': settings.GOOGLE_API_KEY
+        }
+        
+        # 실제 사진 URL을 반환하지 않고, 프론트엔드에서 사용할 수 있는 URL 생성
+        photo_url = f"{base_url}?maxwidth={max_width}&photoreference={photo_reference}&key={settings.GOOGLE_API_KEY}"
+        return photo_url
+        
+    except Exception as e:
+        logger.error(f"사진 URL 생성 실패: {str(e)}")
+        return None
+
 def get_google_places_by_location(location_name, max_results=5):
     """Google Maps API로 특정 지역의 고평점 가게들 조회"""
     try:
@@ -54,11 +72,17 @@ def get_google_places_by_location(location_name, max_results=5):
             logger.error(f"Google Places API 오류: {data['status']}")
             return []
         
-        # 평점 3.8+ 가게만 필터링
-        min_rating = 3.8
+        # 평점 4.0+ 가게만 필터링 (더 엄격한 기준으로 생성 시간 단축)
+        min_rating = 4.0
         high_rated_places = []
         for place in data['results']:
             if 'rating' in place and place['rating'] >= min_rating:
+                # 사진 URL 생성
+                image_url = ""
+                if 'photos' in place and place['photos']:
+                    photo_ref = place['photos'][0]['photo_reference']
+                    image_url = get_place_photo_url(photo_ref)
+                
                 high_rated_places.append({
                     'place_id': place['place_id'],
                     'name': place['name'],
@@ -66,6 +90,7 @@ def get_google_places_by_location(location_name, max_results=5):
                     'address': place.get('formatted_address', ''),
                     'types': place.get('types', []),
                     'photos': place.get('photos', []),
+                    'image_url': image_url,  # 실제 사진 URL 추가
                     'price_level': place.get('price_level', 0),
                     'geometry': place.get('geometry', {}),
                     'user_ratings_total': place.get('user_ratings_total', 0)
@@ -124,6 +149,9 @@ def enrich_place_with_details(place_basic, place_details):
                     'time': review.get('time', 0)
                 })
         
+        # 사진 URL 처리 (place_basic에서 가져오기)
+        image_url = place_basic.get('image_url', '')
+        
         # 가게 정보 단순화
         enriched_place = {
             'name': place_basic.get('name', ''),
@@ -135,7 +163,8 @@ def enrich_place_with_details(place_basic, place_details):
             'place_id': place_basic.get('place_id', ''),
             'types': place_basic.get('types', []),
             'reviews': reviews,  # 실제 리뷰 데이터
-            'user_ratings_total': place_details.get('user_ratings_total', 0)
+            'user_ratings_total': place_details.get('user_ratings_total', 0),
+            'image_url': image_url  # 사진 URL 추가
         }
         
         return enriched_place
@@ -195,7 +224,7 @@ def generate_gpt_emotion_based_recommendations(places, emotions, location):
         logger.error(f"GPT 추천 생성 중 오류: {e}")
         return None
 
-def get_inference_recommendations(location_id, emotion_ids, max_results=20):
+def get_inference_recommendations(location_id, emotion_ids, max_results=10):  # 20 → 10으로 감소
     """사용자 선택 기반 추천 시스템 메인 함수 - 추천 로직에 집중"""
     try:
         # 1. 동네와 감정 정보 가져오기
@@ -208,15 +237,15 @@ def get_inference_recommendations(location_id, emotion_ids, max_results=20):
         location_name = location.name
         emotion_names = [emotion.name for emotion in emotions]
         
-        # 2. Google Maps API로 지역 기반 가게 조회
+        # 2. Google Maps API로 지역 기반 가게 조회 (더 적은 수로 제한)
         places = get_google_places_by_location(location_name, max_results)
         
         if not places:
             return None, f"{location_name} 지역에서 가게를 찾을 수 없습니다."
         
-        # 3. 각 가게의 상세 정보 보강 (실제 리뷰 포함)
+        # 3. 각 가게의 상세 정보 보강 (실제 리뷰 포함, 상위 3개만)
         enriched_places = []
-        for place in places:
+        for place in places[:3]:  # 상위 3개만 처리하여 시간 단축
             # Google Places API에서 상세 정보와 리뷰 가져오기
             place_details = get_place_details_with_reviews(place['place_id'])
             enriched_place = enrich_place_with_details(place, place_details)
