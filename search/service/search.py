@@ -54,17 +54,44 @@ def get_place_id(query, lat, lng, threshold=60):
 
 
 def get_place_details(place_id, place_name=None):
-    """
-    place_id 기반 상세정보 조회 + 과거 이전주소 매핑
-    """
-    previous_address = None
+    previous_address, previous_lat, previous_lng = None, None, None
+
     if place_name:
-        match = history_df[history_df['상호명'].str.contains(place_name, case=False, na=False)]
-        print("검색 키워드:", place_name)
+        # 문자열 정규화
+        normalized_name = place_name.replace(" ", "").lower()
+        history_df["상호명_norm"] = history_df["상호명"].str.replace(" ", "").str.lower()
+
+        # 부분 문자열 매칭
+        match = history_df[history_df["상호명_norm"].str.contains(normalized_name, na=False) |
+                           history_df["상호명_norm"].str.contains(normalized_name, na=False)]
+
+        # RapidFuzz fallback
+        if match.empty:
+            from rapidfuzz import process
+            choices = history_df["상호명_norm"].tolist()
+            best_match = process.extractOne(normalized_name, choices, scorer=fuzz.partial_ratio)
+            if best_match:
+                best_name, score, idx = best_match
+                print(f"[DEBUG] CSV 매칭 시도: {best_name}, 유사도={score}")
+                if score >= 80:
+                    match = history_df.iloc[[idx]]
+
+        print("검색 키워드:", place_name, "→ 정규화:", normalized_name)
 
         if not match.empty:
-            previous_address = match.iloc[0]['이전 전 주소']
+            # ✅ 여기서 실제 CSV 컬럼명 확인
+            col_name = "이전 전 상세 주소" if "이전 전 상세 주소" in match.columns else "이전 전 주소"
+            previous_address = match.iloc[0][col_name]
 
+            # 위경도 변환
+            geo_url = "https://maps.googleapis.com/maps/api/geocode/json"
+            geo_params = {"address": previous_address, "language": "ko", "key": settings.GOOGLE_API_KEY}
+            geo_res = requests.get(geo_url, params=geo_params).json()
+            if geo_res.get("status") == "OK" and geo_res.get("results"):
+                loc = geo_res["results"][0]["geometry"]["location"]
+                previous_lat, previous_lng = loc["lat"], loc["lng"]
+
+    # Google place details
     url = "https://maps.googleapis.com/maps/api/place/details/json"
     params = {
         "place_id": place_id,
@@ -85,11 +112,17 @@ def get_place_details(place_id, place_name=None):
         else:
             status = "폐업함"
 
+    # 반환 데이터 보강
     result["previous_address"] = previous_address
+    result["previous_lat"] = previous_lat
+    result["previous_lng"] = previous_lng
     result["business_status"] = status
+
     print("찾은 이전주소:", previous_address)
+    print("이전 전 주소 위도와 경도", previous_lat, previous_lng)
 
     return result
+
 
 
 def get_photo_url(photo_ref, maxwidth=400):

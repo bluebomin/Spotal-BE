@@ -34,11 +34,12 @@ class MemorySerializer(serializers.ModelSerializer):
     emotions = EmotionSerializer(source='emotion_id', many=True, read_only=True)
     location = LocationSerializer(read_only=True) #read_only=True는 출력에만
     images = serializers.SerializerMethodField() 
+    nickname = serializers.CharField(source='user.nickname', read_only=True)
 
     class Meta:
         model = Memory
         fields = [
-            'memory_id', 'user_id',  'content',
+            'memory_id', 'user_id',"nickname",  'content',
             'emotion_id', 'location_id',        # 입력용
             'emotions', 'location',              # 출력용
             'created_at', 'updated_at','images'

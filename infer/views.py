@@ -4,11 +4,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
-from .models import UserInferenceSession, InferenceRecommendation, Place, AISummary
+from .models import UserInferenceSession, Place, AISummary
 from .serializers import (
     UserInferenceSessionSerializer, 
     UserInferenceSessionCreateSerializer,
-    InferenceRecommendationSerializer
+    RecommendationResultSerializer
 )
 from .services import get_inference_recommendations
 from community.models import Emotion, Location
@@ -208,19 +208,17 @@ def create_inference_session(request):
                 summary=place_data.get('summary', '')
             )
             
-            # InferenceRecommendation 모델에 저장
-            inference_recommendation = InferenceRecommendation.objects.create(
-                session=session,
-                place=place
-            )
-            
+            # recommendations와 동일한 구조로 데이터 구성
             saved_places.append({
-                'place_id': place.shop_id,
+                'shop_id': place.shop_id,
                 'name': place.name,
                 'address': place.address,
+                'emotions': [emotion.name for emotion in place.emotions.all()],
+                'location': recommendations['location'],
+                'ai_summary': ai_summary.summary,
                 'image_url': place.image_url,
-                'summary': ai_summary.summary,
-                'emotion_tags': [emotion.name for emotion in place.emotions.all()]
+                'created_date': place.created_date.isoformat(),
+                'modified_date': place.modified_date.isoformat()
             })
         
         print(f"데이터 저장 완료: {len(saved_places)}개 장소")
