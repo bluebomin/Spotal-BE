@@ -68,7 +68,12 @@ class RecommendationView(APIView):
                 address_ko = translate_to_korean(details.get("formatted_address")) if details.get("formatted_address") else None
 
                 # GPT 요약 + 감정태그 생성
-                summary = generate_summary_card(details, reviews, uptaenms) or "요약 준비중입니다"
+                if reviews:  
+                    summary = generate_summary_card(details, reviews, uptaenms) or "요약 준비중입니다"
+                else:
+                    neighborhood = extract_neighborhood(address_ko or c.get("address"))
+                    summary = f"{place_name}은 {neighborhood}에 위치한 가게입니다"
+
                 tags = generate_emotion_tags(details, reviews, uptaenms) or []
 
                 # Emotion 모델 매핑 (입력 감정 + 자동 생성 감정)

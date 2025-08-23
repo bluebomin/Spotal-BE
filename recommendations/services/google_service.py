@@ -24,8 +24,9 @@ def get_place_details(place_id, place_name=None):
     return data.get("result", {})
 
 
-def get_similar_places(address, emotion_names, allowed_types=None, max_results=10):
-    query = f"용산구 {address} {' '.join(emotion_names)}"
+def get_similar_places(address, emotion_names, allowed_types=None, max_results=8):
+    query = f"{address} 맛집" if "cafe" not in (allowed_types or []) else f"{address} 카페"
+
     params = {
         "query": query,
         "key": API_KEY,
@@ -38,21 +39,35 @@ def get_similar_places(address, emotion_names, allowed_types=None, max_results=1
     for r in data.get("results", []):
         types = r.get("types", [])
 
-        # 업태 필터 적용
-        if allowed_types and not any(t in allowed_types for t in types):
-            continue
+        # cafe 모드 / 비-cafe 모드
+        if "cafe" in (allowed_types or []):
+            if "cafe" not in types:
+                continue
+        else:
+            if "cafe" in types:
+                continue
+
+        # 점수 계산
+        score = 0
+        if any(keyword in r.get("name", "") for keyword in emotion_names):
+            score += 2
+        if "cafe" in types:
+            score += 3
+        score += r.get("rating", 0)
+        score += len(r.get("reviews", [])) * 0.5
 
         results.append({
             "place_id": r.get("place_id"),
             "name": r.get("name"),
             "address": r.get("formatted_address"),
             "image_url": get_photo_url(r["photos"][0]["photo_reference"]) if r.get("photos") else "",
+            "_score": score,
         })
 
-        if len(results) >= max_results:
-            break
+    # 점수 순 정렬
+    results = sorted(results, key=lambda x: x["_score"], reverse=True)
 
-    return results
+    return results[:max_results]
 
 
 
