@@ -41,3 +41,5 @@ def translate_to_korean(text: str) -> str:
 def normalize_korean_address(address: str) -> str:
     """주소를 한국어로 정규화하는 함수 (translate_to_korean)"""
     return translate_to_korean(address)
+
+
