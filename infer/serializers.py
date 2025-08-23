@@ -7,7 +7,7 @@ class PlaceSerializer(serializers.ModelSerializer):
         many=True, 
         read_only=True, 
         slug_field='name',
-        source='emotions'
+        source='emotions.all'  # .all을 추가하여 쿼리셋을 명시적으로 가져옴
     )
     location = serializers.CharField(source='location.name', read_only=True)
     ai_summary = serializers.SerializerMethodField()
@@ -44,7 +44,12 @@ class AISummarySerializer(serializers.ModelSerializer):
 class UserInferenceSessionSerializer(serializers.ModelSerializer):
     """사용자 추론 세션 시리얼라이저"""
     # 중첩된 객체 대신 직접 필드 노출
-    location_name = serializers.CharField(source='selected_location.name', read_only=True)
+    location_names = serializers.SlugRelatedField(
+        many=True, 
+        read_only=True, 
+        slug_field='name',
+        source='selected_location'
+    )
     emotion_names = serializers.SlugRelatedField(
         many=True, 
         read_only=True, 
@@ -55,13 +60,16 @@ class UserInferenceSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserInferenceSession
         fields = [
-            'session_id', 'user', 'location_name', 'emotion_names', 'created_at'
+            'session_id', 'user', 'location_names', 'emotion_names', 'created_at'
         ]
         read_only_fields = ['session_id', 'user', 'created_at']
 
 class UserInferenceSessionCreateSerializer(serializers.ModelSerializer):
     """사용자 추론 세션 생성용 시리얼라이저"""
-    selected_location = serializers.IntegerField(write_only=True)
+    selected_location = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True
+    )
     selected_emotions = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True
@@ -70,6 +78,14 @@ class UserInferenceSessionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserInferenceSession
         fields = ['selected_location', 'selected_emotions']
+    
+    def validate_selected_location(self, value):
+        """동네 선택 검증 (최대 3개)"""
+        if len(value) > 3:
+            raise serializers.ValidationError("동네는 최대 3개까지 선택 가능합니다.")
+        if len(value) == 0:
+            raise serializers.ValidationError("최소 1개의 동네를 선택해주세요.")
+        return value
     
     def validate_selected_emotions(self, value):
         """감정 태그 검증 (최대 3개)"""
@@ -85,7 +101,7 @@ class RecommendationResultSerializer(serializers.ModelSerializer):
         many=True, 
         read_only=True, 
         slug_field='name',
-        source='emotions'
+        source='emotions.all'  # .all을 추가하여 쿼리셋을 명시적으로 가져옴
     )
     location = serializers.CharField(source='location.name', read_only=True)
     ai_summary = serializers.SerializerMethodField()
