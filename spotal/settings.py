@@ -206,4 +206,7 @@ CORS_ALLOW_CREDENTIALS = True
 # 프로덕션 환경 설정
 DEBUG = env('DEBUG', default=False)
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-^c*8d*pmfc^%&z@6c@8a=ilioa3_r6&gk94hrt5+*(fa**+u%z')
-ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='13.124.195.6').split(',')
+#ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='13.124.195.6').split(',')
+ALLOWED_HOSTS = ["*"]
+
+
