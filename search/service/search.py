@@ -3,14 +3,63 @@ import requests
 import pandas as pd
 import os
 from rapidfuzz import fuzz
+import hgtk
 
 CSV_PATH = os.path.join(settings.BASE_DIR, "data", "용산구이전가게.csv")
 history_df = pd.read_csv(CSV_PATH)
 
-# Google API Helper
+# 헷갈리는 자모 교정 매핑
+NORMALIZE_MAP = {
+    "ㅓ": "ㅓ", "ㅕ": "ㅓ",
+    "ㅐ": "ㅔ", "ㅔ": "ㅔ",
+    "ㄲ": "ㄱ", "ㄸ": "ㄷ", "ㅃ": "ㅂ", "ㅆ": "ㅅ", "ㅉ": "ㅈ",
+    "ㄱ":"ㄲ", "ㄷ":"ㄸ", "ㅂ":"ㅃ", "ㅅ":"ㅆ", "ㅈ":"ㅉ",
+}
+
+# 겹받침 교정
+BATCHIM_MAP = {
+    "ㄹㄱ": "ㄱ",
+    "ㄹㅁ": "ㅁ",
+    "ㄹㅂ": "ㅂ",
+    "ㄴㅈ": "ㅈ",
+    "ㄴㅎ": "ㄴ",
+    "ㅂㅅ": "ㅂ",
+}
+
+def normalize_hangul(text: str) -> str:
+    """한글 철자를 교정해주는 범용 함수"""
+    result = []
+    for ch in text:
+        if not hgtk.checker.is_hangul(ch):
+            result.append(ch)
+            continue
+
+        cho, jung, jong = hgtk.letter.decompose(ch)
+
+        # 초성 교정
+        cho = NORMALIZE_MAP.get(cho, cho)  
+
+        # 중성(모음) 교정
+        jung = NORMALIZE_MAP.get(jung, jung)
+
+        # 종성(받침) 교정
+        if jong in BATCHIM_MAP:
+            jong = BATCHIM_MAP[jong]
+
+        # 다시 합성
+        result.append(hgtk.letter.compose(cho, jung, jong if jong != " " else ""))
+    return "".join(result)
+
+def get_chosung(text: str) -> str:
+    """초성 문자열만 추출"""
+    return "".join([
+        hgtk.letter.decompose(c)[0] if hgtk.checker.is_hangul(c) else c
+        for c in text
+    ])
 
 
 def get_place_id(query, lat, lng, threshold=60):
+    query = normalize_hangul(query)
     url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
     params = {
         "query": query,
@@ -22,6 +71,7 @@ def get_place_id(query, lat, lng, threshold=60):
     res = requests.get(url, params=params).json()
     candidates = res.get("results", [])
     if not candidates:
+        print(f"[DEBUG] 구글검색 실패, query={query}")
         return None, None
 
     # 1. 정확히 일치하는 이름 있으면 최우선
