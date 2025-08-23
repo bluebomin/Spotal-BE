@@ -20,12 +20,12 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/community/', include('community.urls')),
+    path('community/', include('community.urls')),
     path('api/infer/', include('infer.urls')),
     path('api/recommendations/', include('recommendations.urls')),
-    path('api/search/', include('search.urls')),
+    path('search/', include('search.urls')),
     path('api/users/', include('users.urls')),
-    path('api/mypage/', include('mypage.urls')),
+    path('mypage/', include('mypage.urls')),
     
     # API 문서
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
