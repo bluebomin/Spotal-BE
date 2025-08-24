@@ -88,7 +88,7 @@ def store_card(request):
         "store": serializer.data,
         "latitude": details["geometry"]["location"]["lat"],   # 위도
         "longitude": details["geometry"]["location"]["lng"],  # 경도
-        "summary_card": summary.strip('"'),
+        "summary_card": summary,
         "google_rating": details.get("rating"),
         "photos": photo_url,
     }, status=200)

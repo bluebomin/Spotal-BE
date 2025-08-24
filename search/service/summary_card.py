@@ -66,6 +66,7 @@ def generate_summary_card(details, reviews, uptaenms):
             temperature=0.5  # 약간의 창의성 허용
         )
         summary = response.choices[0].message.content.strip()
+        summary = re.sub(r'^"(.*)"$', r'\1', summary)  # 양쪽 큰따옴표 제거
 
         return summary
    
@@ -107,6 +108,7 @@ def generate_summary_card(details, reviews, uptaenms):
     )
 
     summary = response.choices[0].message.content.strip()
+    summary = re.sub(r'^"(.*)"$', r'\1', summary)  # 양쪽 큰따옴표 제거
 
 
     return summary
@@ -119,17 +121,11 @@ ALLOWED_TAGS = ["정겨움", "편안함", "조용함", "활기참", "소박함",
 
 def generate_emotion_tags(place_name, reviews, types):
     """리뷰를 기반으로 감정 태그 생성"""
-    print(f"[DEBUG] generate_emotion_tags 호출됨")
-    print(f"[DEBUG] 가게명: {place_name}")
-    print(f"[DEBUG] 리뷰 수: {len(reviews)}")
     
     # 리뷰가 없으면 업태별 기본 감정 태그 반환
     if not reviews or len(reviews) == 0:
         print(f"[DEBUG] 리뷰가 없음, 업태별 기본 감정 태그 사용")
         return get_default_emotion_tags_by_types(types)
-    
-    print(f"[DEBUG] 리뷰 샘플: {reviews[:2]}")
-    print(f"[DEBUG] 업태: {types}")
     
     # 리뷰가 있으면 GPT로 감정 태그 생성
     try:
@@ -157,16 +153,13 @@ def generate_emotion_tags(place_name, reviews, types):
         )
         
         emotion_text = response.choices[0].message.content.strip()
-        print(f"[DEBUG] GPT 응답: {emotion_text}")
         
         # 응답을 감정 태그 리스트로 변환
         emotion_candidates = [tag.strip() for tag in emotion_text.split(',')]
-        print(f"[DEBUG] 분리된 후보들: {emotion_candidates}")
-        
+
         # 최종 감정 태그 (최대 2개)
         final_emotions = emotion_candidates[:2]
-        print(f"[DEBUG] 최종 감정 태그: {final_emotions}")
-        
+       
         return final_emotions
         
     except Exception as e:
@@ -177,8 +170,7 @@ def generate_emotion_tags(place_name, reviews, types):
 
 def get_default_emotion_tags_by_types(types):
     """업태별로 기본 감정 태그 반환"""
-    print(f"[DEBUG] 업태별 기본 감정 태그 생성: {types}")
-    
+ 
     # 업태별 기본 감정 태그 매핑
     type_emotion_map = {
         'restaurant': ['맛있음'],
