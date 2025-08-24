@@ -5,6 +5,12 @@ from django.conf import settings
 
 class Place(models.Model):
     """추천 장소 정보"""
+    STATUS_CHOICES = [
+        ('operating', '운영중'),
+        ('closed', '폐업함'),
+        ('moved', '이전함'),
+    ]
+    
     shop_id = models.BigAutoField(primary_key=True)
     emotions = models.ManyToManyField(
         "community.Emotion",   
@@ -21,6 +27,12 @@ class Place(models.Model):
     google_rating = models.FloatField(default=0.0, verbose_name='Google 평점')
     reviews = models.JSONField(default=list, blank=True, verbose_name='Google 리뷰 데이터')
     place_types = models.JSONField(default=list, blank=True, verbose_name='Google 장소 타입')
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default='operating',
+        verbose_name='운영 상태'
+    )
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
 

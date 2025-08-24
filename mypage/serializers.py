@@ -34,6 +34,7 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
         slug_field="name"
     )
     summary = serializers.CharField(source="summary_snapshot", read_only=True)
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = SavedPlace
@@ -43,4 +44,9 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
             "image_url",
             "emotions",
             "summary",
+            "status"
         ]
+
+    # 우선 추천 1은 운영중 뜨도록 함
+    def get_status(self, obj):
+        return "운영중"

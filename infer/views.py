@@ -3,7 +3,6 @@ from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from .models import UserInferenceSession, Place, AISummary
 from .serializers import (
     UserInferenceSessionSerializer, 
@@ -15,29 +14,6 @@ from community.models import Emotion, Location
 
 # Create your views here.
 
-@extend_schema(
-    tags=['감정 기반 추천'],
-    summary='감정 및 위치 옵션 조회',
-    description='추론에 필요한 감정 태그와 위치 옵션을 조회합니다.',
-    responses={
-        200: {
-            'description': '옵션 조회 성공',
-            'examples': {
-                'application/json': {
-                    'message': '추론 옵션을 성공적으로 조회했습니다!',
-                    'emotions': [
-                        {'emotion_id': 1, 'name': '행복'},
-                        {'emotion_id': 2, 'name': '설렘'}
-                    ],
-                    'locations': [
-                        {'location_id': 1, 'name': '홍대'},
-                        {'location_id': 2, 'name': '강남'}
-                    ]
-                }
-            }
-        }
-    }
-)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_inference_options(request):
@@ -60,59 +36,6 @@ def get_inference_options(request):
             'error': f'옵션 조회에 실패했습니다: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(
-    tags=['감정 기반 추천'],
-    summary='가게 추천 생성',
-    description='사용자가 선택한 동네와 감정을 기반으로 Google Maps API와 GPT를 활용하여 가게를 추천합니다.',
-    request={
-        'application/json': {
-            'type': 'object',
-            'properties': {
-                'selected_location': {
-                    'type': 'integer',
-                    'description': '선택된 동네의 ID',
-                    'example': 1
-                },
-                'selected_emotions': {
-                    'type': 'array',
-                    'items': {'type': 'integer'},
-                    'description': '선택된 감정 태그 ID 목록 (최대 3개)',
-                    'example': [1, 2]
-                }
-            },
-            'required': ['selected_location', 'selected_emotions']
-        }
-    },
-    responses={
-        201: {
-            'description': '추천 생성 성공',
-            'examples': {
-                'application/json': [
-                    {
-                        'shop_id': 1,
-                        'name': '행복카페',
-                        'address': '서울 마포구 홍대로 123',
-                        'emotions': ['행복', '설렘'],
-                        'location': '홍대',
-                        'ai_summary': '행복한 분위기의 카페입니다...',
-                        'image_url': 'https://...',
-                        'created_date': '2025-08-22T18:36:39.183419',
-                        'modified_date': '2025-08-22T18:36:39.183419'
-                    }
-                ]
-            }
-        },
-        400: {
-            'description': '잘못된 요청',
-            'examples': {
-                'application/json': {
-                    'error': '입력 데이터가 올바르지 않습니다.',
-                    'details': {'selected_emotions': ['감정 태그는 최대 3개까지 선택 가능합니다.']}
-                }
-            }
-        }
-    }
-)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def create_inference_session(request):
@@ -125,7 +48,7 @@ def create_inference_session(request):
         
         # 1. 입력 데이터 검증
         print(f"=== 시리얼라이저 검증 시작 ===")
-        serializer = UserInferenceSessionCreateSerializer(data=request.data)
+        serializer = UserInferenceSessionCreateSerializer(data=request.data, context={'request': request})
         print(f"시리얼라이저 생성 완료")
         
         if not serializer.is_valid():
@@ -179,22 +102,42 @@ def create_inference_session(request):
         saved_places = []
         
         for place_data in recommendations['top_places']:
+            print(f"[DEBUG] place_data emotion_tags: {place_data.get('emotion_tags', [])}")
+            
             # Place 모델에 저장
             place = Place.objects.create(
                 name=place_data.get('name', ''),
                 address=place_data.get('address', ''),
                 image_url=place_data.get('image_url', ''),
-                location_id=location_id[0]  # 첫 번째 동네를 기본으로 설정
+                location_id=location_id[0],  # 첫 번째 동네를 기본으로 설정
+                status=place_data.get('status', 'operating')  # status 필드 추가
             )
             
             # 감정 태그 설정
             if 'emotion_tags' in place_data and place_data['emotion_tags']:
                 # 감정 태그가 문자열 리스트로 오는 경우를 처리
                 emotion_names = place_data['emotion_tags']
+                print(f"[DEBUG] 감정 태그 설정 시작: {emotion_names}")
+                
                 if isinstance(emotion_names, list):
                     # 감정 이름으로 감정 객체 찾기
                     emotions = Emotion.objects.filter(name__in=emotion_names)
-                    place.emotions.set(emotions)
+                    print(f"[DEBUG] DB에서 찾은 감정 객체: {emotions}")
+                    print(f"[DEBUG] 감정 객체 수: {emotions.count()}")
+                    
+                    if emotions.exists():
+                        place.emotions.set(emotions)
+                        print(f"[DEBUG] 감정 태그 설정 완료: {[e.name for e in emotions]}")
+                    else:
+                        print(f"[DEBUG] 감정 태그를 찾을 수 없음: {emotion_names}")
+                        # DB에 없는 감정태그는 새로 생성하거나, 기본 감정태그 사용
+                        # recommendations와 동일한 방식으로 처리
+                        fallback_emotions = Emotion.objects.filter(name__in=['정겨움', '편안함', '조용함'])
+                        if fallback_emotions.exists():
+                            place.emotions.set(fallback_emotions)
+                            print(f"[DEBUG] fallback 감정 태그 설정: {[e.name for e in fallback_emotions]}")
+                        else:
+                            print(f"[DEBUG] fallback 감정 태그도 설정 실패")
             
             # AISummary 모델에 저장
             ai_summary = AISummary.objects.create(
@@ -207,10 +150,12 @@ def create_inference_session(request):
                 'shop_id': place.shop_id,
                 'name': place.name,
                 'address': place.address,
-                'emotions': [emotion.name for emotion in place.emotions.all()],
+                'rec': 2,
+                'emotions': [emotion.name for emotion in place.emotions.all()],  # Place 모델의 emotions 필드 사용
                 'location': place.location.name,  # Place 모델의 location 필드 사용
                 'ai_summary': ai_summary.summary,
                 'image_url': place.image_url,
+                'status': place.get_status_display(),  # status 필드 추가 (한글 표시)
                 'created_date': place.created_date.isoformat(),
                 'modified_date': place.modified_date.isoformat()
             })
@@ -237,45 +182,6 @@ def create_inference_session(request):
             'error': f'추론 세션 생성에 실패했습니다: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(
-    tags=['감정 기반 추천'],
-    summary='특정 추천 세션 조회',
-    description='특정 추론 세션의 상세 정보를 조회합니다.',
-    parameters=[
-        OpenApiParameter(
-            name='session_id',
-            type=int,
-            location=OpenApiParameter.PATH,
-            description='조회할 세션의 ID',
-            required=True
-        )
-    ],
-    responses={
-        200: {
-            'description': '세션 조회 성공',
-            'examples': {
-                'application/json': {
-                    'message': '추론 세션을 성공적으로 조회했습니다!',
-                    'data': {
-                        'session_id': 1,
-                        'user': None,
-                        'selected_location': {'location_id': 1, 'name': '홍대'},
-                        'selected_emotions': [{'emotion_id': 1, 'name': '행복'}],
-                        'created_at': '2024-01-01T12:00:00Z'
-                    }
-                }
-            }
-        },
-        404: {
-            'description': '세션을 찾을 수 없음',
-            'examples': {
-                'application/json': {
-                    'error': '해당 세션을 찾을 수 없습니다.'
-                }
-            }
-        }
-    }
-)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_inference_session(request, session_id):
@@ -298,38 +204,6 @@ def get_inference_session(request, session_id):
             'error': f'세션 조회에 실패했습니다: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(
-    tags=['감정 기반 추천'],
-    summary='사용자 추천 히스토리 조회',
-    description='로그인한 사용자의 추론 히스토리를 조회합니다.',
-    responses={
-        200: {
-            'description': '히스토리 조회 성공',
-            'examples': {
-                'application/json': {
-                    'message': '사용자 추론 히스토리를 성공적으로 조회했습니다!',
-                    'data': [
-                        {
-                            'session_id': 1,
-                            'selected_location': {'location_id': 1, 'name': '홍대'},
-                            'selected_emotions': [{'emotion_id': 1, 'name': '행복'}],
-                            'created_at': '2024-01-01T12:00:00Z'
-                        }
-                    ],
-                    'total_count': 1
-                }
-            }
-        },
-        401: {
-            'description': '인증 필요',
-            'examples': {
-                'application/json': {
-                    'error': '로그인이 필요합니다.'
-                }
-            }
-        }
-    }
-)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_user_inference_history(request):

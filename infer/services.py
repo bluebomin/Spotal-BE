@@ -106,28 +106,27 @@ def get_google_places_by_location(location_name, max_results=5):
         logger.error(f"Google Maps API 호출 실패: {str(e)}")
         return []
 
-def get_place_details_with_reviews(place_id):
-    """Google Places API로 가게 상세 정보와 리뷰 조회"""
+def get_place_details_with_reviews(place_id, place_name=None):
+    """Google Places API로 가게 상세 정보와 리뷰 조회 - search 앱 서비스 활용"""
     try:
-        # Place Details API
-        url = f"https://maps.googleapis.com/maps/api/place/details/json"
+        # search 앱의 get_place_details 함수 사용 (이전함 상태 처리 포함)
+        place_details = get_place_details(place_id, place_name)
         
-        params = {
-            'place_id': place_id,
-            'key': settings.GOOGLE_API_KEY,
-            'language': 'ko',
-            'fields': 'name,formatted_address,rating,reviews,types,photos,price_level,geometry,user_ratings_total,opening_hours,website,formatted_phone_number'
-        }
-        
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        
-        data = response.json()
-        
-        if data['status'] != 'OK':
+        if not place_details:
             return None
         
-        return data['result']
+        # search 앱에서 반환하는 status를 infer 앱의 status로 매핑
+        search_status = place_details.get('business_status')
+        if search_status == '운영중':
+            place_details['status'] = 'operating'
+        elif search_status == '폐업함':
+            place_details['status'] = 'closed'
+        elif search_status == '이전함':
+            place_details['status'] = 'moved'
+        else:
+            place_details['status'] = 'operating'  # 기본값
+        
+        return place_details
         
     except Exception as e:
         logger.error(f"Place Details API 호출 실패: {str(e)}")
@@ -152,13 +151,16 @@ def enrich_place_with_details(place_basic, place_details):
         # 사진 URL 처리 (place_basic에서 가져오기)
         image_url = place_basic.get('image_url', '')
         
+        # 운영 상태는 place_details에서 가져오기 (search 앱에서 이미 매핑됨)
+        status = place_details.get('status', 'operating')
+        
         # 가게 정보 단순화
         enriched_place = {
             'name': place_basic.get('name', ''),
             'address': normalized_address,
-            'status': '운영 중',
+            'status': status,  # place_details에서 가져온 상태값 사용
             'summary': '',
-            'emotion_tags': [],
+            'emotion_tags': [],  # search 앱에서 생성된 감정 태그 사용
             'google_rating': place_basic.get('rating', 0),
             'place_id': place_basic.get('place_id', ''),
             'types': place_basic.get('types', []),
@@ -195,7 +197,7 @@ def generate_gpt_emotion_based_recommendations(places, emotions, location):
             
             # search 앱 서비스로 요약과 감정 태그 생성
             summary = generate_summary_card(place_details, reviews, place.get('types', []))
-            emotion_tags = generate_emotion_tags(place_details, reviews, place.get('types', []))
+            emotion_tags = generate_emotion_tags(place['name'], place.get('reviews', []), place.get('types', []))
             
             # 가게 정보에 요약과 감정 태그 추가
             place['summary'] = summary
@@ -251,7 +253,7 @@ def get_inference_recommendations(location_ids, emotion_ids, max_results=10):  #
         enriched_places = []
         for place in all_places[:3]:  # 상위 3개만 처리하여 시간 단축
             # Google Places API에서 상세 정보와 리뷰 가져오기
-            place_details = get_place_details_with_reviews(place['place_id'])
+            place_details = get_place_details_with_reviews(place['place_id'], place['name'])
             enriched_place = enrich_place_with_details(place, place_details)
             enriched_places.append(enriched_place)
         
