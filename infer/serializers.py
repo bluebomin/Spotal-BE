@@ -122,12 +122,13 @@ class RecommendationResultSerializer(serializers.ModelSerializer):
     )
     location = serializers.CharField(source='location.name', read_only=True)
     ai_summary = serializers.SerializerMethodField()
+    rec = serializers.SerializerMethodField()
     
     class Meta:
         model = Place
         fields = [
             'shop_id', 'name', 'address', 'emotions', 'location',
-            'ai_summary', 'image_url', 'status', 'created_date', 'modified_date'
+            'ai_summary', 'image_url', 'status', 'created_date', 'modified_date', 'rec'
         ]
         read_only_fields = ['shop_id', 'created_date', 'modified_date']
     
@@ -135,3 +136,6 @@ class RecommendationResultSerializer(serializers.ModelSerializer):
         """Place와 연결된 AISummary 중 최신 하나 가져오기"""
         summary = obj.ai_summary.order_by("-created_date").first()
         return summary.summary if summary else None
+    
+    def get_rec(self, obj):
+        return 2 

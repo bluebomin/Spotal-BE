@@ -21,6 +21,7 @@ class PlaceSerializer(serializers.ModelSerializer):
     location = serializers.CharField(source="location.name", read_only=True)
     ai_summary = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    rec = serializers.SerializerMethodField()  
 
     class Meta:
         model = Place
@@ -28,13 +29,14 @@ class PlaceSerializer(serializers.ModelSerializer):
             "shop_id",
             "name",
             "address",
+            "rec",
             "emotions",      # [ "정겨움", "힐링" ] 
             "location",      # "청파동"
             "ai_summary",
             "image_url",
             "status",
             "created_date",
-            "modified_date",
+            "modified_date"
         )
         read_only_fields = ("shop_id", "created_date", "modified_date")
 
@@ -45,6 +47,9 @@ class PlaceSerializer(serializers.ModelSerializer):
     
     def get_status(self, obj):
         return "운영중"
+
+    def get_rec(self, obj):
+        return 1 
 
 
 
@@ -57,7 +62,7 @@ class SavedPlaceCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SavedPlace
-        fields = ("saved_id", "shop", "user", "created_date")
+        fields = ("saved_id", "shop", "user", "rec", "created_date")
         read_only_fields = ("saved_id", "created_date") # user는 body에서 직접 넘기도록 
 
 
@@ -91,6 +96,7 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
             "summary",
             "status",
             "created_date",
+            "rec",
         )
         read_only_fields = ("saved_id", "created_date")
 

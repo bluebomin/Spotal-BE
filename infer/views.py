@@ -150,6 +150,7 @@ def create_inference_session(request):
                 'shop_id': place.shop_id,
                 'name': place.name,
                 'address': place.address,
+                'rec': 2,
                 'emotions': [emotion.name for emotion in place.emotions.all()],  # Place 모델의 emotions 필드 사용
                 'location': place.location.name,  # Place 모델의 location 필드 사용
                 'ai_summary': ai_summary.summary,
