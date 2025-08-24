@@ -25,6 +25,7 @@ class RecommendationView(APIView):
         name = request.data.get("name")
         address = request.data.get("address")
         emotion_tags = request.data.get("emotion_tags", [])
+        user_id = request.data.get("user_id", None)  # user_id 필드 optional
 
         # --- 필수 입력값 체크 ---
         if not name or not address or not emotion_tags:
@@ -51,6 +52,13 @@ class RecommendationView(APIView):
                 emotion_names,
                 allowed_types=allowed_types
             )[:8]
+
+            # user_id가 있으면 감정보관함 제외 필터링
+            saved_shop_ids = []
+            if user_id:
+                saved_shop_ids = SavedPlace.objects.filter(
+                    user_id=user_id, rec=1
+                ).values_list("shop_id", flat=True)
 
             response_data = []
 
@@ -98,6 +106,10 @@ class RecommendationView(APIView):
 
                 # AISummary 저장
                 AISummary.objects.create(shop=place, summary=summary)
+
+                # 감정보관함에 이미 저장된 경우 skip
+                if user_id and place.shop_id in saved_shop_ids:
+                    continue
 
                 # 직렬화 데이터 추가
                 response_data.append(PlaceSerializer(place).data)
