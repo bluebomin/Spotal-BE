@@ -114,14 +114,17 @@ def create_inference_session(request):
         for place_data in recommendations['top_places']:
             print(f"[DEBUG] place_data emotion_tags: {place_data.get('emotion_tags', [])}")
             
-            # Place 모델에 저장
-            place = Place.objects.create(
-                name=place_data.get('name', ''),
-                address=place_data.get('address', ''),
-                image_url=place_data.get('image_url', ''),
-                location_id=location_id[0],  # 첫 번째 동네를 기본으로 설정
-                status=place_data.get('status', 'operating')  # status 필드 추가
+            place, created = Place.objects.get_or_create(
+                google_place_id=place_data.get('place_id'),  # 구글 place_id 사용
+                defaults={
+                    "name": place_data.get('name', ''),
+                    "address": place_data.get('address', ''),
+                    "image_url": place_data.get('image_url', ''),
+                    "location_id": location_id[0],
+                    "status": place_data.get('status', 'operating')
+                }
             )
+
             
             # 감정 태그 설정
             if 'emotion_tags' in place_data and place_data['emotion_tags']:
@@ -149,11 +152,14 @@ def create_inference_session(request):
                         else:
                             print(f"[DEBUG] fallback 감정 태그도 설정 실패")
             
-            # AISummary 모델에 저장
-            ai_summary = AISummary.objects.create(
-                place=place,
-                summary=place_data.get('summary', '')
-            )
+
+            if created:
+                ai_summary = AISummary.objects.create(
+                    place=place,
+                    summary=place_data.get('summary', '')
+                )
+            else:
+                ai_summary = place.ai_summary.order_by("-created_date").first()
 
             # 감정보관함에 이미 있으면 skip
             if user_id and place.shop_id in saved_shop_ids:
