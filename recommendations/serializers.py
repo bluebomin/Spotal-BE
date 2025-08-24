@@ -57,7 +57,7 @@ class SavedPlaceCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SavedPlace
-        fields = ("saved_id", "shop", "user", "created_date")
+        fields = ("saved_id", "shop", "user", "rec", "created_date")
         read_only_fields = ("saved_id", "created_date") # user는 body에서 직접 넘기도록 
 
 
@@ -91,6 +91,7 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
             "summary",
             "status",
             "created_date",
+            "rec",
         )
         read_only_fields = ("saved_id", "created_date")
 
