@@ -29,14 +29,14 @@ class PlaceSerializer(serializers.ModelSerializer):
             "shop_id",
             "name",
             "address",
+            "rec",
             "emotions",      # [ "정겨움", "힐링" ] 
             "location",      # "청파동"
             "ai_summary",
             "image_url",
             "status",
             "created_date",
-            "modified_date",
-            "rec"
+            "modified_date"
         )
         read_only_fields = ("shop_id", "created_date", "modified_date")
 

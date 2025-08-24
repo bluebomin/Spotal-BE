@@ -150,14 +150,14 @@ def create_inference_session(request):
                 'shop_id': place.shop_id,
                 'name': place.name,
                 'address': place.address,
+                'rec': 2,
                 'emotions': [emotion.name for emotion in place.emotions.all()],  # Place 모델의 emotions 필드 사용
                 'location': place.location.name,  # Place 모델의 location 필드 사용
                 'ai_summary': ai_summary.summary,
                 'image_url': place.image_url,
                 'status': place.get_status_display(),  # status 필드 추가 (한글 표시)
                 'created_date': place.created_date.isoformat(),
-                'modified_date': place.modified_date.isoformat(),
-                'rec': 2
+                'modified_date': place.modified_date.isoformat()
             })
         
         print(f"데이터 저장 완료: {len(saved_places)}개 장소")
