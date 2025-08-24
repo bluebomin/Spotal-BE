@@ -12,6 +12,7 @@ class Place(models.Model):
     ]
     
     shop_id = models.BigAutoField(primary_key=True)
+    google_place_id = models.CharField(max_length=255, unique=True, null=True, blank=True) 
     emotions = models.ManyToManyField(
         "community.Emotion",   
         related_name="infer_places"
