@@ -11,6 +11,7 @@ from .serializers import (
 )
 from .services import get_inference_recommendations
 from community.models import Emotion, Location
+from recommendations.models import SavedPlace
 
 # Create your views here.
 
@@ -41,6 +42,8 @@ def get_inference_options(request):
 def create_inference_session(request):
     """사용자 추론 세션 생성 및 Google Maps API + GPT 추천"""
     try:
+        user_id = request.data.get("user_id", None)  # user 필드 optional
+
         print(f"=== 요청 데이터 확인 ===")
         print(f"request.data: {request.data}")
         print(f"request.data 타입: {type(request.data)}")
@@ -86,6 +89,13 @@ def create_inference_session(request):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         print(f"추천 시스템 성공: {recommendations}")
+
+        # 감정보관함 제외: user_id가 있으면 SavedPlace 필터링
+        saved_shop_ids = []
+        if user_id:
+            saved_shop_ids = SavedPlace.objects.filter(
+                user_id=user_id, rec=2
+            ).values_list("shop_id", flat=True)
         
         # 4. 세션 저장
         print(f"=== 세션 저장 시작 ===")
@@ -144,6 +154,10 @@ def create_inference_session(request):
                 place=place,
                 summary=place_data.get('summary', '')
             )
+
+            # 감정보관함에 이미 있으면 skip
+            if user_id and place.shop_id in saved_shop_ids:
+                continue
             
             # recommendations와 동일한 구조로 데이터 구성
             saved_places.append({
