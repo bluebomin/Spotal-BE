@@ -21,6 +21,7 @@ class PlaceSerializer(serializers.ModelSerializer):
     location = serializers.CharField(source="location.name", read_only=True)
     ai_summary = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    rec = serializers.SerializerMethodField()  
 
     class Meta:
         model = Place
@@ -35,6 +36,7 @@ class PlaceSerializer(serializers.ModelSerializer):
             "status",
             "created_date",
             "modified_date",
+            "rec"
         )
         read_only_fields = ("shop_id", "created_date", "modified_date")
 
@@ -45,6 +47,9 @@ class PlaceSerializer(serializers.ModelSerializer):
     
     def get_status(self, obj):
         return "운영중"
+
+    def get_rec(self, obj):
+        return 1 
 
 
 
