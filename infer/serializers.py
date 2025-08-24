@@ -16,7 +16,7 @@ class PlaceSerializer(serializers.ModelSerializer):
         model = Place
         fields = [
             'shop_id', 'name', 'address', 'emotions', 'location',
-            'ai_summary', 'image_url', 'created_date', 'modified_date'
+            'ai_summary', 'image_url', 'status', 'created_date', 'modified_date'
         ]
         read_only_fields = ['shop_id', 'created_date', 'modified_date']
     
@@ -66,34 +66,51 @@ class UserInferenceSessionSerializer(serializers.ModelSerializer):
 
 class UserInferenceSessionCreateSerializer(serializers.ModelSerializer):
     """사용자 추론 세션 생성용 시리얼라이저"""
-    selected_location = serializers.ListField(
-        child=serializers.IntegerField(),
-        write_only=True
-    )
-    selected_emotions = serializers.ListField(
-        child=serializers.IntegerField(),
-        write_only=True
-    )
+    selected_location = serializers.SerializerMethodField()
+    selected_emotions = serializers.SerializerMethodField()
     
     class Meta:
         model = UserInferenceSession
         fields = ['selected_location', 'selected_emotions']
     
-    def validate_selected_location(self, value):
-        """동네 선택 검증 (최대 3개)"""
-        if len(value) > 3:
-            raise serializers.ValidationError("동네는 최대 3개까지 선택 가능합니다.")
-        if len(value) == 0:
-            raise serializers.ValidationError("최소 1개의 동네를 선택해주세요.")
-        return value
+    def get_selected_location(self, obj):
+        # 이 메서드는 사용되지 않지만 필수
+        return []
     
-    def validate_selected_emotions(self, value):
-        """감정 태그 검증 (최대 3개)"""
-        if len(value) > 3:
-            raise serializers.ValidationError("감정 태그는 최대 3개까지 선택 가능합니다.")
-        if len(value) == 0:
-            raise serializers.ValidationError("최소 1개의 감정 태그를 선택해주세요.")
-        return value
+    def get_selected_emotions(self, obj):
+        # 이 메서드는 사용되지 않지만 필수
+        return []
+    
+    def validate(self, data):
+        """전체 데이터 검증"""
+        # request.data에서 직접 값을 가져오기
+        request = self.context.get('request')
+        if request:
+            selected_location = request.data.get('selected_location')
+            selected_emotions = request.data.get('selected_emotions')
+            
+            # 단일 정수값을 리스트로 변환
+            if isinstance(selected_location, int):
+                selected_location = [selected_location]
+            if isinstance(selected_emotions, int):
+                selected_emotions = [selected_emotions]
+            
+            # 검증
+            if not selected_location or len(selected_location) == 0:
+                raise serializers.ValidationError("최소 1개의 동네를 선택해주세요.")
+            if len(selected_location) > 3:
+                raise serializers.ValidationError("동네는 최대 3개까지 선택 가능합니다.")
+            
+            if not selected_emotions or len(selected_emotions) == 0:
+                raise serializers.ValidationError("최소 1개의 감정 태그를 선택해주세요.")
+            if len(selected_emotions) > 3:
+                raise serializers.ValidationError("감정 태그는 최대 3개까지 선택 가능합니다.")
+            
+            # 검증된 데이터를 validated_data에 추가
+            data['selected_location'] = selected_location
+            data['selected_emotions'] = selected_emotions
+        
+        return data
 
 class RecommendationResultSerializer(serializers.ModelSerializer):
     """추천 결과 응답용 시리얼라이저 - recommendations와 동일한 구조"""
@@ -110,7 +127,7 @@ class RecommendationResultSerializer(serializers.ModelSerializer):
         model = Place
         fields = [
             'shop_id', 'name', 'address', 'emotions', 'location',
-            'ai_summary', 'image_url', 'created_date', 'modified_date'
+            'ai_summary', 'image_url', 'status', 'created_date', 'modified_date'
         ]
         read_only_fields = ['shop_id', 'created_date', 'modified_date']
     
