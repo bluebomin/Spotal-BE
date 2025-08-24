@@ -95,17 +95,20 @@ class RecommendationView(APIView):
                 neighborhood_name = extract_neighborhood(address_ko)
                 location_obj, _ = Location.objects.get_or_create(name=neighborhood_name)
 
-                # Place 저장
-                place = Place.objects.create(
-                    name=name_ko or place_name,
-                    address=address_ko or c.get("address"),
-                    image_url=c.get("image_url", ""),
-                    location=location_obj,
+                place, created = Place.objects.get_or_create(
+                    google_place_id=place_id,   # 구글 place_id를 기준으로 중복 방지
+                    defaults={
+                        "name": name_ko or place_name,
+                        "address": address_ko or c.get("address"),
+                        "image_url": c.get("image_url", ""),
+                        "location": location_obj,
+                    }
                 )
                 place.emotions.set(emotion_objs)
 
-                # AISummary 저장
-                AISummary.objects.create(shop=place, summary=summary)
+                # 새로 만든 경우에만 AISummary 생성
+                if created:
+                    AISummary.objects.create(shop=place, summary=summary)
 
                 # 감정보관함에 이미 저장된 경우 skip
                 if user_id and place.shop_id in saved_shop_ids:
