@@ -156,7 +156,8 @@ def create_inference_session(request):
                 'image_url': place.image_url,
                 'status': place.get_status_display(),  # status 필드 추가 (한글 표시)
                 'created_date': place.created_date.isoformat(),
-                'modified_date': place.modified_date.isoformat()
+                'modified_date': place.modified_date.isoformat(),
+                'rec': 2
             })
         
         print(f"데이터 저장 완료: {len(saved_places)}개 장소")
