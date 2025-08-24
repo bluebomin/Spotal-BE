@@ -3,102 +3,40 @@ import requests
 import pandas as pd
 import os
 from rapidfuzz import fuzz
-import hgtk
 
 CSV_PATH = os.path.join(settings.BASE_DIR, "data", "용산구이전가게.csv")
 history_df = pd.read_csv(CSV_PATH)
 
-# 헷갈리는 자모 교정 매핑
-NORMALIZE_MAP = {
-    "ㅓ": "ㅓ", "ㅕ": "ㅓ",
-    "ㅐ": "ㅔ", "ㅔ": "ㅔ",
-    "ㄲ": "ㄱ", "ㄸ": "ㄷ", "ㅃ": "ㅂ", "ㅆ": "ㅅ", "ㅉ": "ㅈ",
-    "ㄱ":"ㄲ", "ㄷ":"ㄸ", "ㅂ":"ㅃ", "ㅅ":"ㅆ", "ㅈ":"ㅉ",
-}
-
-# 겹받침 교정
-BATCHIM_MAP = {
-    "ㄹㄱ": "ㄱ",
-    "ㄹㅁ": "ㅁ",
-    "ㄹㅂ": "ㅂ",
-    "ㄴㅈ": "ㅈ",
-    "ㄴㅎ": "ㄴ",
-    "ㅂㅅ": "ㅂ",
-}
-
-def normalize_hangul(text: str) -> str:
-    """한글 철자를 교정해주는 범용 함수"""
-    result = []
-    for ch in text:
-        if not hgtk.checker.is_hangul(ch):
-            result.append(ch)
-            continue
-
-        cho, jung, jong = hgtk.letter.decompose(ch)
-
-        # 초성 교정
-        cho = NORMALIZE_MAP.get(cho, cho)  
-
-        # 중성(모음) 교정
-        jung = NORMALIZE_MAP.get(jung, jung)
-
-        # 종성(받침) 교정
-        if jong in BATCHIM_MAP:
-            jong = BATCHIM_MAP[jong]
-
-        # 다시 합성
-        result.append(hgtk.letter.compose(cho, jung, jong if jong != " " else ""))
-    return "".join(result)
-
-def get_chosung(text: str) -> str:
-    """초성 문자열만 추출"""
-    return "".join([
-        hgtk.letter.decompose(c)[0] if hgtk.checker.is_hangul(c) else c
-        for c in text
-    ])
-
-
-def get_place_id(query, lat, lng, threshold=90):
-    def search_google(q):
-        url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-        params = {
-            "query": q,
-            "location": f"{lat},{lng}",
-            "rankby": "distance",
-            "language": "ko",
-            "key": settings.GOOGLE_API_KEY
-        }
-        res = requests.get(url, params=params).json()
-        return res.get("results", [])
-
-    # 1차: 원본 검색
-    candidates = search_google(query)
+# Google API Helper
+def get_place_id(query, lat, lng, threshold=60):
+    url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+    params = {
+        "query": query,
+        "location": f"{lat},{lng}",
+        "rankby": "distance",
+        "language": "ko",
+        "key": settings.GOOGLE_API_KEY
+    }
+    res = requests.get(url, params=params).json()
+    candidates = res.get("results", [])
     if not candidates:
-        # 2차: 교정된 검색어로 재시도
-        norm_query = normalize_hangul(query)
-        if norm_query != query:
-            print(f"[DEBUG] 원본 검색 실패, 교정 후 재검색: {norm_query}")
-            candidates = search_google(norm_query)
-
-    if not candidates:
-        print(f"[DEBUG] 구글검색 실패, query={query}")
         return None, None
 
-    # --- 이하 동일 ---
+    # 1. 정확히 일치하는 이름 있으면 최우선
+    for c in candidates:
+        if c["name"] == query:
+            return c["place_id"], c["name"]
+
+    # 2. 가장 가까운 후보
     nearest = candidates[0]
     place_name = nearest["name"]
+    
 
     # 3. 유사도 검사
-    similarity = fuzz.ratio(query.lower(), place_name.lower())
+    similarity = fuzz.partial_ratio(query.lower(), place_name.lower())
     print(f"[DEBUG] 검색어={query}, 구글결과={place_name}, 유사도={similarity}")
 
-# 부분 일치 100점 보정
-    if similarity == 100 and len(query) != len(place_name):
-        print("[DEBUG] 부분 일치 100점 → 페널티 적용")
-        similarity = 80
-
     if similarity < threshold:
-    # fallback: candidates 전체 중에서 query와 가장 비슷한 것 찾기
         best_match = max(
             candidates,
             key=lambda c: fuzz.ratio(query.lower(), c["name"].lower()),
@@ -113,9 +51,6 @@ def get_place_id(query, lat, lng, threshold=90):
             return None, None
 
     return nearest["place_id"], place_name
-
-
-
 
 
 def get_place_details(place_id, place_name=None):
@@ -144,7 +79,7 @@ def get_place_details(place_id, place_name=None):
         print("검색 키워드:", place_name, "→ 정규화:", normalized_name)
 
         if not match.empty:
-            # 여기서 실제 CSV 컬럼명 확인
+            # ✅ 여기서 실제 CSV 컬럼명 확인
             col_name = "이전 전 상세 주소" if "이전 전 상세 주소" in match.columns else "이전 전 주소"
             previous_address = match.iloc[0][col_name]
 
