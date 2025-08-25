@@ -21,7 +21,7 @@ class Place(models.Model):
     )
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
-    image_url = models.TextField(blank=True, default="")
+    photo_reference = models.CharField(max_length=512, blank=True, default="")
 
     google_rating = models.FloatField(default=0.0, null=True, blank=True)
     reviews = models.JSONField(default=list, blank=True, null=True)

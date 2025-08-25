@@ -99,7 +99,7 @@ class RecommendationView(APIView):
                     defaults={
                         "name": name_ko or place_name,
                         "address": address_ko or c.get("address"),
-                        "image_url": c.get("image_url", ""),
+                        "photo_reference": c.get("photo_reference", ""),
                         "location": location_obj,
                     }
                 )

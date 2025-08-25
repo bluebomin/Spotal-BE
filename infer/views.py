@@ -12,6 +12,7 @@ from .serializers import (
 from .services import get_inference_recommendations
 from community.models import Emotion, Location
 from recommendations.models import SavedPlace, Place
+from recommendations.services.google_service import get_photo_url
 
 # Create your views here.
 
@@ -122,7 +123,7 @@ def create_inference_session(request):
                 defaults={
                     "name": place_data.get("name", ""),
                     "address": place_data.get("address", ""),
-                    "image_url": place_data.get("image_url", ""),
+                    "photo_reference": place_data.get("photo_reference", ""),
                     "location_id": location_id[0],
                     "status": place_data.get("status", "operating"),
                 }
@@ -177,7 +178,7 @@ def create_inference_session(request):
                 'emotions': [emotion.name for emotion in place.emotions.all()],  # Place 모델의 emotions 필드 사용
                 'location': place.location.name,  # Place 모델의 location 필드 사용
                 'ai_summary': ai_summary.summary,
-                'image_url': place.image_url,
+                'image_url': get_photo_url(place.photo_reference) if place.photo_reference else None,
                 'status': place.get_status_display(),  # status 필드 추가 (한글 표시)
                 'created_date': place.created_date.isoformat(),
                 'modified_date': place.modified_date.isoformat()
