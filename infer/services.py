@@ -176,7 +176,7 @@ def enrich_place_with_details(place_basic, place_details):
         return place_basic
 
 def generate_gpt_emotion_based_recommendations(places, emotions, location):
-    """감정 기반 가게 추천 생성 - search 앱 서비스 활용"""
+    """감정 기반 가게 추천 생성 - search 앱 서비스 활용 + 다양성 확보"""
     try:
         enriched_places = []
         
@@ -204,15 +204,37 @@ def generate_gpt_emotion_based_recommendations(places, emotions, location):
             place['emotion_tags'] = emotion_tags
             enriched_places.append(place)
         
-        # 전체 추천 설명 생성 (infer 앱만의 추천 로직)
+        # 다양성 확보를 위한 개선된 프롬프트
         overall_prompt = f"""
         {location}에서 {', '.join(emotions)} 감정을 느낄 수 있는 가게들을 추천해드립니다.
         
+        **추억의 가게 찾기 목적:**
+        이 추천은 사용자가 추억의 가게를 찾는 것이 목적입니다.
+        우선 사용자는 동네를 선택하고, 찾고자 하는 가게에서 그 당시에 느꼈던 감정을 선택할 것입니다.
+        그러면 해당당 동네에서 구글 리뷰를 통해 해당 감정을 느꼈을 만한 가게를 찾아주어야 합니다.
+
         추천된 가게들:
-        {chr(10).join([f"- {place['name']}: {place['summary']}" for place in enriched_places])}
+        {chr(10).join([f"- {place['name']} ({place.get('status', 'operating')}): {place['summary']}" for place in enriched_places])}
         
-        이 가게들은 {', '.join(emotions)} 감정을 잘 표현하는 곳들입니다. 
-        각 가게의 특징과 분위기를 고려하여 방문해보시기 바랍니다.
+        **중요한 지침:**
+        1. 사용자가 찾고자 하는 가게가 현재재 운영중인지 폐업중인지 모를 수 있으므로 운영중인 가게만 추천하면 안 됩니다. 
+        2. 폐업한 가게라면 "그곳에서의 추억", "그 시절의 분위기" 등을 강조하면 됩니다.
+        3. 운영중인 가게라면 "지금도 그 감정을 느낄 수 있는 곳"임을 강조해 주세요. 
+        4. 각 가게마다 서로 다른 추억과 경험을 제공할 수 있음을 표현하세요
+        5. 사용자가 과거의 기억을 되살릴 수 있는 다양한 선택지를 제시하세요
+        6. 같은 감정이라도 가게마다 다른 방식으로 표현됨을 강조하세요
+        7. 각 가게의 고유한 분위기와 특징을 구체적으로 설명하세요
+        8. 감정의 깊이와 뉘앙스를 세밀하게 분석하여 설명하세요
+        
+        **다양성 확보 요청:**
+        - 각 가게가 {', '.join(emotions)} 감정을 어떻게 다르게 표현하는지 구체적으로 분석
+        - 단조로운 설명을 피하고, 각 가게만의 특별한 분위기나 특징을 강조
+        - 사용자가 다양한 선택지를 가질 수 있도록 각 가게의 차별점을 부각
+        
+        이 가게들은 {', '.join(emotions)} 감정을 대표하는 곳들이지만,
+        각각 다른 추억과 의미를 가지고 있습니다.
+        사용자가 자신의 추억 속 가게를 찾을 수 있도록 
+        각 가게의 고유한 매력과 의미를 구체적이고 상세하게 설명해주세요.
         """
         
         overall_recommendation = call_gpt_api(overall_prompt)
