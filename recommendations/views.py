@@ -66,9 +66,17 @@ class RecommendationView(APIView):
                 place_id = c.get("place_id")
                 place_name = c.get("name")
 
+                details = get_place_details(place_id, place_name)
+                reviews = [r["text"] for r in details.get("reviews", [])]
+                uptaenms = details.get("types", [])
+
                 # 주소/이름 한국어 정규화
                 name_ko = translate_to_korean(details.get("name")) if details.get("name") else None
                 address_ko = translate_to_korean(details.get("formatted_address")) if details.get("formatted_address") else None
+
+                photo_ref = ""
+                if details.get("photos"):
+                    photo_ref = details["photos"][0].get("photo_reference", "")
 
                 # GPT 요약 + 감정태그 생성
                 if reviews:  
@@ -89,19 +97,6 @@ class RecommendationView(APIView):
                 neighborhood_name = extract_neighborhood(address_ko)
                 location_obj, _ = Location.objects.get_or_create(name=neighborhood_name)
 
-                # 구글 Place 상세 정보 가져오기
-                details = get_place_details(place_id, place_name)
-                reviews = [r["text"] for r in details.get("reviews", [])]
-                uptaenms = details.get("types", [])
-
-                # 주소/이름 한국어 정규화
-                name_ko = translate_to_korean(details.get("name")) if details.get("name") else None
-                address_ko = translate_to_korean(details.get("formatted_address")) if details.get("formatted_address") else None
-
-                # photo_reference는 상세 정보에서 가져오기
-                photo_ref = ""
-                if details.get("photos"):
-                    photo_ref = details["photos"][0].get("photo_reference", "")
 
                 place, created = Place.objects.update_or_create(
                     google_place_id=place_id,
@@ -133,8 +128,6 @@ class RecommendationView(APIView):
                 {"error": f"추천 생성 중 오류 발생: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-
 
 
 # --------------- Place (추천가게) ----------------
