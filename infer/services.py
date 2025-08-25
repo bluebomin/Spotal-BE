@@ -90,7 +90,8 @@ def get_google_places_by_location(location_name, max_results=5):
                     'address': place.get('formatted_address', ''),
                     'types': place.get('types', []),
                     'photos': place.get('photos', []),
-                    'image_url': image_url,  # 실제 사진 URL 추가
+                    'photo_reference': photo_ref,  
+                    'image_url': image_url,  # 최종 url이고, 있어도 무방
                     'price_level': place.get('price_level', 0),
                     'geometry': place.get('geometry', {}),
                     'user_ratings_total': place.get('user_ratings_total', 0)
@@ -150,6 +151,7 @@ def enrich_place_with_details(place_basic, place_details):
         
         # 사진 URL 처리 (place_basic에서 가져오기)
         image_url = place_basic.get('image_url', '')
+        photo_reference = place_basic.get('photo_reference', '')
         
         # 운영 상태는 place_details에서 가져오기 (search 앱에서 이미 매핑됨)
         status = place_details.get('status', 'operating')
@@ -166,7 +168,8 @@ def enrich_place_with_details(place_basic, place_details):
             'types': place_basic.get('types', []),
             'reviews': reviews,  # 실제 리뷰 데이터
             'user_ratings_total': place_details.get('user_ratings_total', 0),
-            'image_url': image_url  # 사진 URL 추가
+            'image_url': image_url,  # 사진 URL 추가
+            'photo_reference': photo_reference
         }
         
         return enriched_place
