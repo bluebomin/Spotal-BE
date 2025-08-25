@@ -112,19 +112,21 @@ def create_inference_session(request):
         saved_places = []
         
         for place_data in recommendations['top_places']:
-            print(f"[DEBUG] place_data emotion_tags: {place_data.get('emotion_tags', [])}")
-            
+            place_id = place_data.get("place_id")
+            if not place_id:
+                print(f"[DEBUG] place_id 없음, skip: {place_data}")
+                continue  # place 정의 안 된 상태로 내려가지 않도록 안전 처리
+
             place, created = Place.objects.get_or_create(
-                google_place_id=place_data.get('place_id'),  # 구글 place_id 사용
+                google_place_id=place_id,
                 defaults={
-                    "name": place_data.get('name', ''),
-                    "address": place_data.get('address', ''),
-                    "image_url": place_data.get('image_url', ''),
+                    "name": place_data.get("name", ""),
+                    "address": place_data.get("address", ""),
+                    "image_url": place_data.get("image_url", ""),
                     "location_id": location_id[0],
-                    'status': place.get_status_display()
+                    "status": place_data.get("status", "operating"),
                 }
             )
-
             
             # 감정 태그 설정
             if 'emotion_tags' in place_data and place_data['emotion_tags']:
@@ -153,6 +155,7 @@ def create_inference_session(request):
                             print(f"[DEBUG] fallback 감정 태그도 설정 실패")
             
 
+            ai_summary = None 
             if created:
                 ai_summary = AISummary.objects.create(
                     place=place,

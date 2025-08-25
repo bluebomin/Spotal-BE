@@ -43,8 +43,18 @@ def extract_keywords(reviews):
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 def generate_summary_card(details, reviews, uptaenms):
 
+    # 리뷰 타입이 str 리스트라면 dict 리스트로 고치도록 
+    if reviews and isinstance(reviews, list):
+        normalized_reviews = []
+        for r in reviews:
+            if isinstance(r, str):
+                normalized_reviews.append({"text": r})
+            elif isinstance(r, dict):
+                normalized_reviews.append(r)
+        reviews = normalized_reviews
+
     # 리뷰가 없거나 모두 공백인 경우
-    if not reviews or all(not r.strip() for r in reviews):
+    if not reviews or all(not r.get("text", "").strip() for r in reviews):
 
         prompt = f"""
         '{details.get("name")}' 은/는 어떤 곳인지 설명해 주세요.
@@ -70,7 +80,9 @@ def generate_summary_card(details, reviews, uptaenms):
 
         return summary
    
-    keywords = extract_keywords(reviews)
+   # reviews를 dict 리스트로 수정
+    review_texts = [r.get("text", "") for r in reviews]
+    keywords = extract_keywords(review_texts)
     uptaenms_list = uptaenms if isinstance(uptaenms, list) else [str(uptaenms)]
 
     # point_of_interest, establishment만 있으면 요약카드 생성하지 않음
@@ -113,14 +125,24 @@ def generate_summary_card(details, reviews, uptaenms):
 
     return summary
 
-# 감정태그생성
 
+# 감정태그생성
 
 ALLOWED_TAGS = ["정겨움", "편안함", "조용함", "활기참", "소박함", "세심함", "정성스러움", "깔끔함", "친절함", "고즈넉함",
                 "현대적임", "전통적임", "독특함", "화려함", "낭만적임", "가족적임", "전문적임","아늑함","편리함","트렌디함"]
 
 def generate_emotion_tags(place_name, reviews, types):
     """리뷰를 기반으로 감정 태그 생성"""
+
+    # reviews 타입이 str이었다면 dict로. 
+    if reviews and isinstance(reviews, list):
+        normalized_reviews = []
+        for r in reviews:
+            if isinstance(r, str):
+                normalized_reviews.append({"text": r})
+            elif isinstance(r, dict):
+                normalized_reviews.append(r)
+        reviews = normalized_reviews
     
     # 리뷰가 없으면 업태별 기본 감정 태그 반환
     if not reviews or len(reviews) == 0:
