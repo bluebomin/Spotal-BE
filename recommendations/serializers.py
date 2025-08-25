@@ -41,12 +41,20 @@ class PlaceSerializer(serializers.ModelSerializer):
         read_only_fields = ("shop_id", "created_date", "modified_date")
 
     def get_ai_summary(self, obj):
-        # Place와 연결된 AISummary 중 최신 하나 가져오기
-        summary = obj.ai_summary.order_by("-created_date").first()
-        return summary.summary if summary else None
+        request = self.context.get("request")
+        rec = None
+        if request:
+            rec = request.query_params.get("rec") or request.data.get("rec")
+
+        if str(rec) == "2":
+            summary_obj = obj.infer_ai_summary.order_by("-created_date").first()
+        else:
+            summary_obj = obj.ai_summary.order_by("-created_date").first()
+
+        return summary_obj.summary if summary_obj else None
     
     def get_status(self, obj):
-        return "운영중"
+        return obj.get_status_display() if obj.status else None
 
     def get_rec(self, obj):
         return 1 
@@ -101,7 +109,10 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
         read_only_fields = ("saved_id", "created_date")
 
     def get_summary(self, obj):
-        summary = obj.shop.ai_summary.order_by("-created_date").first()
+        if obj.rec == 2:
+            summary = obj.shop.infer_ai_summary.order_by("-created_date").first()
+        else:
+            summary = obj.shop.ai_summary.order_by("-created_date").first()
         return summary.summary if summary else None
     
     def get_status(self, obj):

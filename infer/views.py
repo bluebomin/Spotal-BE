@@ -3,7 +3,7 @@ from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .models import UserInferenceSession, Place, AISummary
+from .models import UserInferenceSession, AISummary
 from .serializers import (
     UserInferenceSessionSerializer, 
     UserInferenceSessionCreateSerializer,
@@ -11,7 +11,7 @@ from .serializers import (
 )
 from .services import get_inference_recommendations
 from community.models import Emotion, Location
-from recommendations.models import SavedPlace
+from recommendations.models import SavedPlace, Place
 
 # Create your views here.
 
@@ -112,19 +112,21 @@ def create_inference_session(request):
         saved_places = []
         
         for place_data in recommendations['top_places']:
-            print(f"[DEBUG] place_data emotion_tags: {place_data.get('emotion_tags', [])}")
-            
+            place_id = place_data.get("place_id")
+            if not place_id:
+                print(f"[DEBUG] place_id 없음, skip: {place_data}")
+                continue  # place 정의 안 된 상태로 내려가지 않도록 안전 처리
+
             place, created = Place.objects.get_or_create(
-                google_place_id=place_data.get('place_id'),  # 구글 place_id 사용
+                google_place_id=place_id,
                 defaults={
-                    "name": place_data.get('name', ''),
-                    "address": place_data.get('address', ''),
-                    "image_url": place_data.get('image_url', ''),
+                    "name": place_data.get("name", ""),
+                    "address": place_data.get("address", ""),
+                    "image_url": place_data.get("image_url", ""),
                     "location_id": location_id[0],
-                    "status": place_data.get('status', 'operating')
+                    "status": place_data.get("status", "operating"),
                 }
             )
-
             
             # 감정 태그 설정
             if 'emotion_tags' in place_data and place_data['emotion_tags']:
@@ -153,13 +155,14 @@ def create_inference_session(request):
                             print(f"[DEBUG] fallback 감정 태그도 설정 실패")
             
 
+            ai_summary = None 
             if created:
                 ai_summary = AISummary.objects.create(
                     place=place,
                     summary=place_data.get('summary', '')
                 )
             else:
-                ai_summary = place.ai_summary.order_by("-created_date").first()
+                ai_summary = place.infer_ai_summary.order_by("-created_date").first()
 
             # 감정보관함에 이미 있으면 skip
             if user_id and place.shop_id in saved_shop_ids:
