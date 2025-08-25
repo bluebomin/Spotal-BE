@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import UserInferenceSession, Place, AISummary
+from .models import UserInferenceSession, AISummary
+from recommendations.models import Place
 
 class PlaceSerializer(serializers.ModelSerializer):
     """장소 정보 시리얼라이저 - recommendations와 동일한 구조"""
@@ -22,7 +23,7 @@ class PlaceSerializer(serializers.ModelSerializer):
     
     def get_ai_summary(self, obj):
         """Place와 연결된 AISummary 중 최신 하나 가져오기"""
-        summary = obj.ai_summary.order_by("-created_date").first()
+        summary = obj.infer_ai_summary.order_by("-created_date").first()
         return summary.summary if summary else None
 
 class AISummarySerializer(serializers.ModelSerializer):
@@ -134,7 +135,7 @@ class RecommendationResultSerializer(serializers.ModelSerializer):
     
     def get_ai_summary(self, obj):
         """Place와 연결된 AISummary 중 최신 하나 가져오기"""
-        summary = obj.ai_summary.order_by("-created_date").first()
+        summary = obj.infer_ai_summary.order_by("-created_date").first()
         return summary.summary if summary else None
     
     def get_rec(self, obj):
