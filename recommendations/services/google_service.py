@@ -60,7 +60,7 @@ def get_similar_places(address, emotion_names, allowed_types=None, max_results=8
             "place_id": r.get("place_id"),
             "name": r.get("name"),
             "address": r.get("formatted_address"),
-            "image_url": get_photo_url(r["photos"][0]["photo_reference"]) if r.get("photos") else "",
+            "photo_reference": r["photos"][0]["photo_reference"] if r.get("photos") else "",
             "_score": score,
         })
 
