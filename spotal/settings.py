@@ -201,7 +201,9 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
+    "https://spotal.vercel.app",  # Vercel 프론트엔드
+    "http://localhost:5173",      # 로컬 개발용
+    "http://localhost:3000",      # 로컬 개발용
     "http://spotal-fe-bucket.s3-website.ap-northeast-2.amazonaws.com",
     "https://spotal-fe-bucket.s3-website.ap-northeast-2.amazonaws.com",
 ]
