@@ -46,7 +46,7 @@ def get_place_photo_url(photo_reference, max_width=400):
         logger.error(f"사진 URL 생성 실패: {str(e)}")
         return None
 
-def get_google_places_by_location(location_name, max_results=5):
+def get_google_places_by_location(location_name, max_results=8):
     """Google Maps API로 특정 지역의 고평점 가게들 조회"""
     try:
         # Google Places API - Text Search
@@ -217,7 +217,7 @@ def generate_gpt_emotion_based_recommendations(places, emotions, location):
         그러면 해당당 동네에서 구글 리뷰를 통해 해당 감정을 느꼈을 만한 가게를 찾아주어야 합니다.
 
         추천된 가게들:
-        {chr(10).join([f"- {place['name']} ({place.get('status', 'operating')}): {place['summary']}" for place in enriched_places])}
+        {chr(10).join([f"- {place['name']}: {place['summary']}" for place in enriched_places])}
         
         **중요한 지침:**
         1. 사용자가 찾고자 하는 가게가 현재재 운영중인지 폐업중인지 모를 수 있으므로 운영중인 가게만 추천하면 안 됩니다. 
