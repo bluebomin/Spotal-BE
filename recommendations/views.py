@@ -11,7 +11,6 @@ from search.service.address import translate_to_korean
 from .services.google_service import get_similar_places, get_place_details, get_photo_url
 from .services.utils import extract_neighborhood
 from .services.emotion_service import expand_emotions_with_gpt   
-from infer.models import AISummary as InferAISummary
 
 
 # Create your views here.
@@ -153,11 +152,9 @@ class SavedPlaceCreateView(generics.CreateAPIView):
         # 추천 로직에 따라 최신요약 저장 로직 분기
         last_summary = None
         if saved_place.rec == 1:
-            # 추천1에서 저장한 경우
             last_summary = saved_place.shop.ai_summary.order_by("-created_date").first()
         elif saved_place.rec == 2:
-            # 추천2에서 저장한 경우
-            last_summary = InferAISummary.objects.filter(place_id=saved_place.shop_id).order_by("-created_date").first()
+            last_summary = saved_place.shop.infer_ai_summary.order_by("-created_date").first()
 
         if last_summary:
             saved_place.summary_snapshot = last_summary.summary
@@ -207,7 +204,7 @@ class AISummaryDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         shop_id = self.kwargs.get("shop_id")
-        return AISummary.objects.get(shop__shop_id=shop_id)
+        return AISummary.objects.get(shop__shop_id=shop_id) # 이건 추천1의 ai summary만 가져오는 코드임 
     
 
 # AISummary만 따로 생성 (요약 재생성 요청 시 필요)

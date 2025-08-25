@@ -3,6 +3,11 @@ from django.conf import settings
 
 # 추천 가게
 class Place(models.Model):
+    STATUS_CHOICES = [
+        ('operating', '운영중'),
+        ('closed', '폐업함'),
+        ('moved', '이전함'),
+    ]
     shop_id = models.BigAutoField(primary_key=True)
     google_place_id = models.CharField(max_length=255, unique=True, null=True, blank=True) 
     emotions = models.ManyToManyField(
@@ -17,6 +22,18 @@ class Place(models.Model):
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
     image_url = models.TextField(blank=True, default="")
+
+    google_rating = models.FloatField(default=0.0, null=True, blank=True)
+    reviews = models.JSONField(default=list, blank=True, null=True)
+    place_types = models.JSONField(default=list, blank=True, null=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="operating",
+        null=True,
+        blank=True
+    )
+
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
 

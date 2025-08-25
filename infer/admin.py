@@ -1,12 +1,5 @@
 from django.contrib import admin
-from .models import UserInferenceSession, InferenceRecommendation, Place, AISummary
-
-@admin.register(Place)
-class PlaceAdmin(admin.ModelAdmin):
-    list_display = ['shop_id', 'name', 'location', 'created_date']
-    list_filter = ['location', 'created_date']
-    search_fields = ['name', 'address']
-    filter_horizontal = ['emotions']
+from .models import UserInferenceSession, InferenceRecommendation, AISummary
 
 @admin.register(AISummary)
 class AISummaryAdmin(admin.ModelAdmin):
