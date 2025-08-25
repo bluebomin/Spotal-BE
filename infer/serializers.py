@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import UserInferenceSession, AISummary
 from recommendations.models import Place
+from recommendations.services.google_service import get_photo_url
 
 class PlaceSerializer(serializers.ModelSerializer):
     """장소 정보 시리얼라이저 - recommendations와 동일한 구조"""
@@ -12,6 +13,7 @@ class PlaceSerializer(serializers.ModelSerializer):
     )
     location = serializers.CharField(source='location.name', read_only=True)
     ai_summary = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField() 
     
     class Meta:
         model = Place
@@ -25,6 +27,11 @@ class PlaceSerializer(serializers.ModelSerializer):
         """Place와 연결된 AISummary 중 최신 하나 가져오기"""
         summary = obj.infer_ai_summary.order_by("-created_date").first()
         return summary.summary if summary else None
+    
+    def get_image_url(self, obj):
+        if obj.photo_reference:
+            return get_photo_url(obj.photo_reference)
+        return None
 
 class AISummarySerializer(serializers.ModelSerializer):
     """AI 요약 시리얼라이저"""
@@ -32,7 +39,7 @@ class AISummarySerializer(serializers.ModelSerializer):
     shop_id = serializers.IntegerField(source='place.shop_id', read_only=True)
     place_name = serializers.CharField(source='place.name', read_only=True)
     place_address = serializers.CharField(source='place.address', read_only=True)
-    place_image_url = serializers.CharField(source='place.image_url', read_only=True)
+    place_image_url = serializers.SerializerMethodField()
     
     class Meta:
         model = AISummary
@@ -41,6 +48,11 @@ class AISummarySerializer(serializers.ModelSerializer):
             'summary', 'created_date', 'modified_date'
         ]
         read_only_fields = ['summary_id', 'created_date', 'modified_date']
+
+    def get_place_image_url(self, obj):
+        if obj.place.photo_reference:
+            return get_photo_url(obj.place.photo_reference)
+        return None
 
 class UserInferenceSessionSerializer(serializers.ModelSerializer):
     """사용자 추론 세션 시리얼라이저"""
@@ -124,6 +136,7 @@ class RecommendationResultSerializer(serializers.ModelSerializer):
     location = serializers.CharField(source='location.name', read_only=True)
     ai_summary = serializers.SerializerMethodField()
     rec = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()  
     
     class Meta:
         model = Place
@@ -140,3 +153,8 @@ class RecommendationResultSerializer(serializers.ModelSerializer):
     
     def get_rec(self, obj):
         return 2 
+    
+    def get_image_url(self, obj):
+        if obj.photo_reference:
+            return get_photo_url(obj.photo_reference)
+        return None
