@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import *
 from community.models import *
+from .services.google_service import get_photo_url
 
 
 # AI 요약 정보
@@ -22,6 +23,7 @@ class PlaceSerializer(serializers.ModelSerializer):
     ai_summary = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     rec = serializers.SerializerMethodField()  
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Place
@@ -33,7 +35,7 @@ class PlaceSerializer(serializers.ModelSerializer):
             "emotions",      # [ "정겨움", "힐링" ] 
             "location",      # "청파동"
             "ai_summary",
-            "image_url",
+            "image_url", # 동적으로 생성되게 됨!! 
             "status",
             "created_date",
             "modified_date"
@@ -58,6 +60,11 @@ class PlaceSerializer(serializers.ModelSerializer):
 
     def get_rec(self, obj):
         return 1 
+    
+    def get_image_url(self, obj):
+        if obj.photo_reference:
+            return get_photo_url(obj.photo_reference)
+        return None
 
 
 
@@ -89,6 +96,7 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
         source="shop.emotions"   # Place.emotions → string 배열
     )
     status = serializers.SerializerMethodField()    
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = SavedPlace
@@ -100,7 +108,7 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
             "address",
             "emotions",
             "location",
-            "image_url",
+            "image_url", # 동적 url로 바꿈!!! 
             "summary",
             "status",
             "created_date",
@@ -117,3 +125,8 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
     
     def get_status(self, obj):
         return "운영중"  
+    
+    def get_image_url(self, obj):
+        if obj.shop.photo_reference:
+            return get_photo_url(obj.shop.photo_reference)
+        return None
