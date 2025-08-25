@@ -73,7 +73,7 @@ def get_google_places_by_location(location_name, max_results=5):
             return []
         
         # 평점 4.0+ 가게만 필터링 (더 엄격한 기준으로 생성 시간 단축)
-        min_rating = 4.0
+        min_rating = 3.6
         high_rated_places = []
         for place in data['results']:
             if 'rating' in place and place['rating'] >= min_rating:
@@ -227,7 +227,7 @@ def generate_gpt_emotion_based_recommendations(places, emotions, location):
         5. 사용자가 과거의 기억을 되살릴 수 있는 다양한 선택지를 제시하세요
         6. 같은 감정이라도 가게마다 다른 방식으로 표현됨을 강조하세요
         7. 각 가게의 고유한 분위기와 특징을 구체적으로 설명하세요
-        8. 감정의 깊이와 뉘앙스를 세밀하게 분석하여 설명하세요
+        8. 최소 3개는 추천해줘야 한다.
         
         **다양성 확보 요청:**
         - 각 가게가 {', '.join(emotions)} 감정을 어떻게 다르게 표현하는지 구체적으로 분석
