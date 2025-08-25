@@ -3,7 +3,7 @@ from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .models import UserInferenceSession, Place, AISummary
+from .models import UserInferenceSession, AISummary
 from .serializers import (
     UserInferenceSessionSerializer, 
     UserInferenceSessionCreateSerializer,
@@ -11,7 +11,7 @@ from .serializers import (
 )
 from .services import get_inference_recommendations
 from community.models import Emotion, Location
-from recommendations.models import SavedPlace
+from recommendations.models import SavedPlace, Place
 
 # Create your views here.
 
@@ -121,7 +121,7 @@ def create_inference_session(request):
                     "address": place_data.get('address', ''),
                     "image_url": place_data.get('image_url', ''),
                     "location_id": location_id[0],
-                    "status": place_data.get('status', 'operating')
+                    'status': place.get_status_display()
                 }
             )
 
@@ -159,7 +159,7 @@ def create_inference_session(request):
                     summary=place_data.get('summary', '')
                 )
             else:
-                ai_summary = place.ai_summary.order_by("-created_date").first()
+                ai_summary = place.infer_ai_summary.order_by("-created_date").first()
 
             # 감정보관함에 이미 있으면 skip
             if user_id and place.shop_id in saved_shop_ids:
