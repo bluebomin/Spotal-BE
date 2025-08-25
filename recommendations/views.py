@@ -66,11 +66,6 @@ class RecommendationView(APIView):
                 place_id = c.get("place_id")
                 place_name = c.get("name")
 
-                # 구글 Place 상세 정보 가져오기
-                details = get_place_details(place_id, place_name)
-                reviews = [r["text"] for r in details.get("reviews", [])]
-                uptaenms = details.get("types", [])
-
                 # 주소/이름 한국어 정규화
                 name_ko = translate_to_korean(details.get("name")) if details.get("name") else None
                 address_ko = translate_to_korean(details.get("formatted_address")) if details.get("formatted_address") else None
@@ -94,15 +89,30 @@ class RecommendationView(APIView):
                 neighborhood_name = extract_neighborhood(address_ko)
                 location_obj, _ = Location.objects.get_or_create(name=neighborhood_name)
 
-                place, created = Place.objects.get_or_create(
-                    google_place_id=place_id,   # 구글 place_id를 기준으로 중복 방지
+                # 구글 Place 상세 정보 가져오기
+                details = get_place_details(place_id, place_name)
+                reviews = [r["text"] for r in details.get("reviews", [])]
+                uptaenms = details.get("types", [])
+
+                # 주소/이름 한국어 정규화
+                name_ko = translate_to_korean(details.get("name")) if details.get("name") else None
+                address_ko = translate_to_korean(details.get("formatted_address")) if details.get("formatted_address") else None
+
+                # photo_reference는 상세 정보에서 가져오기
+                photo_ref = ""
+                if details.get("photos"):
+                    photo_ref = details["photos"][0].get("photo_reference", "")
+
+                place, created = Place.objects.update_or_create(
+                    google_place_id=place_id,
                     defaults={
                         "name": name_ko or place_name,
                         "address": address_ko or c.get("address"),
-                        "photo_reference": c.get("photo_reference", ""),
+                        "photo_reference": photo_ref,   # details에서 가져온 값 저장
                         "location": location_obj,
                     }
                 )
+
                 place.emotions.set(emotion_objs)
 
                 # 새로 만든 경우에만 AISummary 생성
