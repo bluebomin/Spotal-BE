@@ -87,7 +87,6 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source="shop.name", read_only=True)
     address = serializers.CharField(source="shop.address", read_only=True)
     location = serializers.CharField(source="shop.location.name", read_only=True)
-    image_url = serializers.CharField(source="shop.image_url", read_only=True)
     summary = serializers.SerializerMethodField()
     emotions = serializers.SlugRelatedField(
         many=True,
