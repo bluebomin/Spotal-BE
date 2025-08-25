@@ -276,7 +276,7 @@ def get_inference_recommendations(location_ids, emotion_ids, max_results=10):  #
         
         # 3. 각 가게의 상세 정보 보강 (실제 리뷰 포함, 상위 3개만)
         enriched_places = []
-        for place in all_places[:3]:  # 상위 3개만 처리하여 시간 단축
+        for place in all_places[:6]:  # 상위 3개만 처리하여 시간 단축
             # Google Places API에서 상세 정보와 리뷰 가져오기
             place_details = get_place_details_with_reviews(place['place_id'], place['name'])
             enriched_place = enrich_place_with_details(place, place_details)
