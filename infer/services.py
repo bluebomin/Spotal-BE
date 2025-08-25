@@ -73,7 +73,7 @@ def get_google_places_by_location(location_name, max_results=5):
             return []
         
         # 평점 4.0+ 가게만 필터링 (더 엄격한 기준으로 생성 시간 단축)
-        min_rating = 4.0
+        min_rating = 3.6
         high_rated_places = []
         for place in data['results']:
             if 'rating' in place and place['rating'] >= min_rating:
