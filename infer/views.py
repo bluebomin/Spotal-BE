@@ -165,6 +165,8 @@ def create_inference_session(request):
             else:
                 ai_summary = place.infer_ai_summary.order_by("-created_date").first()
 
+            ai_summary_text = ai_summary.summary if ai_summary else place_data.get('summary', '')
+
             # 감정보관함에 이미 있으면 skip
             if user_id and place.shop_id in saved_shop_ids:
                 continue
