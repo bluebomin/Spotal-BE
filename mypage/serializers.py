@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from community.models import Bookmark
 from recommendations.models import SavedPlace
+from recommendations.services.google_service import get_photo_url
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
@@ -26,7 +27,7 @@ class BookmarkSerializer(serializers.ModelSerializer):
 class SavedPlaceSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source="shop.name", read_only=True)
     address = serializers.CharField(source="shop.address", read_only=True)
-    image_url = serializers.CharField(source="shop.image_url", read_only=True)
+    image_url = serializers.SerializerMethodField() 
     emotions = serializers.SlugRelatedField(
         source="shop.emotions",
         many=True,
@@ -50,3 +51,8 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
     # 우선 추천 1은 운영중 뜨도록 함
     def get_status(self, obj):
         return "운영중"
+    
+    def get_image_url(self, obj):
+        if obj.shop.photo_reference:
+            return get_photo_url(obj.shop.photo_reference)
+        return None
