@@ -46,7 +46,7 @@ def get_place_photo_url(photo_reference, max_width=400):
         logger.error(f"사진 URL 생성 실패: {str(e)}")
         return None
 
-def get_google_places_by_location(location_name, max_results=5):
+def get_google_places_by_location(location_name, max_results=8):
     """Google Maps API로 특정 지역의 고평점 가게들 조회"""
     try:
         # Google Places API - Text Search
@@ -73,7 +73,7 @@ def get_google_places_by_location(location_name, max_results=5):
             return []
         
         # 평점 4.0+ 가게만 필터링 (더 엄격한 기준으로 생성 시간 단축)
-        min_rating = 4.0
+        min_rating = 3.6
         high_rated_places = []
         for place in data['results']:
             if 'rating' in place and place['rating'] >= min_rating:
@@ -217,7 +217,7 @@ def generate_gpt_emotion_based_recommendations(places, emotions, location):
         그러면 해당당 동네에서 구글 리뷰를 통해 해당 감정을 느꼈을 만한 가게를 찾아주어야 합니다.
 
         추천된 가게들:
-        {chr(10).join([f"- {place['name']} ({place.get('status', 'operating')}): {place['summary']}" for place in enriched_places])}
+        {chr(10).join([f"- {place['name']}: {place['summary']}" for place in enriched_places])}
         
         **중요한 지침:**
         1. 사용자가 찾고자 하는 가게가 현재재 운영중인지 폐업중인지 모를 수 있으므로 운영중인 가게만 추천하면 안 됩니다. 
@@ -227,7 +227,7 @@ def generate_gpt_emotion_based_recommendations(places, emotions, location):
         5. 사용자가 과거의 기억을 되살릴 수 있는 다양한 선택지를 제시하세요
         6. 같은 감정이라도 가게마다 다른 방식으로 표현됨을 강조하세요
         7. 각 가게의 고유한 분위기와 특징을 구체적으로 설명하세요
-        8. 감정의 깊이와 뉘앙스를 세밀하게 분석하여 설명하세요
+        8. 최소 3개는 추천해줘야 한다.
         
         **다양성 확보 요청:**
         - 각 가게가 {', '.join(emotions)} 감정을 어떻게 다르게 표현하는지 구체적으로 분석
@@ -276,7 +276,7 @@ def get_inference_recommendations(location_ids, emotion_ids, max_results=10):  #
         
         # 3. 각 가게의 상세 정보 보강 (실제 리뷰 포함, 상위 3개만)
         enriched_places = []
-        for place in all_places[:3]:  # 상위 3개만 처리하여 시간 단축
+        for place in all_places[:6]:  # 상위 3개만 처리하여 시간 단축
             # Google Places API에서 상세 정보와 리뷰 가져오기
             place_details = get_place_details_with_reviews(place['place_id'], place['name'])
             enriched_place = enrich_place_with_details(place, place_details)
