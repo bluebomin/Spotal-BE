@@ -62,8 +62,7 @@ Spotal은 **사용자의 기억과 상황에 맞춰**, 다음과 같은 입체�
 | 하지민 |  | PM / DE | 기획, UI/UX 디자인, 발표 자료 제작 |
 | 박세은 | <img width="200" height="200" alt="seeun_profile" src="https://github.com/user-attachments/assets/04515f3c-2c24-4e18-b29e-82dea6e54833" />| FE | Map, Hompage(mainpage), 배포   |
 | 이연서 | <img width="200" height="200" alt="yeonseo_profile" src="https://github.com/user-attachments/assets/ae766acf-f12f-48ea-8f8b-679a4225d8c5" />| FE | Onboarding, 회원가입/로그인, Mypage, 탐색, 배포 |
-| 김보민 | <img width="200" height="200" alt="김보민 미모티콘" src="https://github.com/user-attachments/assets/85843b6a-6bdb-4392-974c-c4e253a98628" />
- | BE |  |
+| 김보민 | <img width="200" height="200" alt="김보민 미모티콘" src="https://github.com/user-attachments/assets/85843b6a-6bdb-4392-974c-c4e253a98628" /> | BE |  |
 | 안성민 |  | BE |  |
 | 최서아 | <img width="200" height="200" alt="seoah_profile" src="https://github.com/user-attachments/assets/adfce197-8703-478a-b731-3535e2d2c46b" />| BE |  |
 
@@ -73,7 +72,8 @@ Spotal은 **사용자의 기억과 상황에 맞춰**, 다음과 같은 입체�
 <img src="https://img.shields.io/badge/javascript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black"> <img src="https://img.shields.io/badge/react-61DAFB?style=for-the-badge&logo=react&logoColor=black"> <img src="https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white"> <img src="https://img.shields.io/badge/%2FUsers%2Fyeonseo%2FDownloads%2Fkakao.svg?logoColor=000000&label=000000&labelColor=000000&color=%23FFCD00
 "> ![Kakao Map API](https://img.shields.io/badge/Kakao%20Map%20API-FFCD00?style=for-the-badge&logo=kakao&logoColor=000000&logoWidth=40)
 
-<img src="https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white"> <img src="https://img.shields.io/badge/Google%20Maps-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white"> <img src="https://img.shields.io/badge/Django%20REST%20Framework-092E20?style=for-the-badge&logo=django&logoColor=white"> <img src="https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazonaws&logoColor=white"> ![OpenAI API](https://img.shields.io/badge/-OpenAI%20API-eee?logo=openai&logoColor=412991&style=flat-square)
+<img src="https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white"> <img src="https://img.shields.io/badge/Google%20Maps-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white"> <img src="https://img.shields.io/badge/Django%20REST%20Framework-092E20?style=for-the-badge&logo=django&logoColor=white"> <img src="https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazonaws&logoColor=white"> <img src="https://img.shields.io/badge/OpenAI%20API-8A2BE2?style=for-the-badge&logo=openai&logoColor=white">
+
 
 <img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white"> <img src="https://img.shields.io/badge/github-181717?style=for-the-badge&logo=github&logoColor=white"> <img src="https://img.shields.io/badge/notion-000000?style=for-the-badge&logo=notion&logoColor=white"> <img src="https://img.shields.io/badge/discord-5865F2?style=for-the-badge&logo=discord&logoColor=white"> 
 
