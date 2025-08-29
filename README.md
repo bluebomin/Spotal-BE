@@ -78,6 +78,74 @@ Spotal은 **사용자의 기억과 상황에 맞춰**, 다음과 같은 입체�
 <img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white"> <img src="https://img.shields.io/badge/github-181717?style=for-the-badge&logo=github&logoColor=white"> <img src="https://img.shields.io/badge/notion-000000?style=for-the-badge&logo=notion&logoColor=white"> <img src="https://img.shields.io/badge/discord-5865F2?style=for-the-badge&logo=discord&logoColor=white"> 
 
 ### 폴더 구조
-          
+
+``` Spotal-BE/
+├── 📁 spotal/                    # Django 프로젝트 설정
+│   ├── settings.py              # 프로젝트 설정 및 환경변수
+│   ├── urls.py                  # 메인 URL 라우팅
+│   ├── wsgi.py                  # WSGI 애플리케이션
+│   └── asgi.py                  # ASGI 애플리케이션
+│
+├── 📁 users/                     # 사용자 관리 앱
+│   ├── models.py                # 사용자 모델
+│   ├── serializers.py           # 사용자 데이터 직렬화
+│   ├── views.py                 # 사용자 관련 API 뷰
+│   └── urls.py                  # 사용자 URL 라우팅
+│
+├── 📁 recommendations/           # 장소 추천 시스템 앱
+│   ├── models.py                # 추천 관련 모델
+│   ├── serializers.py           # 추천 데이터 직렬화
+│   ├── views.py                 # 추천 API 뷰
+│   ├── services.py              # 추천 서비스 로직
+│   ├── signals.py               # Django 시그널 처리
+│   └── 📁 services/             # 세부 서비스 모듈
+│       ├── emotion_service.py   # 감정 분석 서비스
+│       ├── gpt_service.py       # GPT AI 서비스
+│       ├── google_service.py    # Google Places API 연동
+│       ├── recommendation_service.py  # 추천 알고리즘
+│       └── utils.py             # 유틸리티 함수
+│
+├── 📁 search/                    # 장소 검색 앱
+│   ├── models.py                # 검색 관련 모델
+│   ├── serializers.py           # 검색 데이터 직렬화
+│   ├── views.py                 # 검색 API 뷰
+│   └── 📁 service/              # 검색 서비스 모듈
+│       ├── search.py            # 검색 엔진
+│       ├── address.py           # 주소 처리 서비스
+│       └── summary_card.py      # 요약 카드 생성
+│
+├── 📁 infer/                     # AI 추론 및 분석 앱
+│   ├── models.py                # AI 분석 모델
+│   ├── serializers.py           # AI 데이터 직렬화
+│   ├── views.py                 # AI 분석 API 뷰
+│   └── services.py              # AI 분석 서비스
+│
+├── 📁 community/                 # 커뮤니티 기능 앱
+│   ├── models.py                # 커뮤니티 모델
+│   ├── serializers.py           # 커뮤니티 데이터 직렬화
+│   ├── views.py                 # 커뮤니티 API 뷰
+│   ├── utils.py                 # 커뮤니티 유틸리티
+│   ├── ImageSerializer.py       # 이미지 처리 직렬화
+│   └── 📁 management/           # Django 관리 명령어
+│       └── 📁 commands/
+│           └── load_initial_data.py  # 초기 데이터 로드
+│
+├── 📁 mypage/                    # 마이페이지 앱
+│   ├── models.py                # 마이페이지 모델
+│   ├── serializers.py           # 마이페이지 데이터 직렬화
+│   ├── views.py                 # 마이페이지 API 뷰
+│   └── urls.py                  # 마이페이지 URL 라우팅
+│
+├── 📁 data/                      # 데이터 파일
+│   ├── emotion.csv              # 감정 데이터
+│   ├── location.csv             # 위치 데이터
+│   └── 용산구이전가게.csv        # 용산구 이전 가게 데이터
+│
+├── manage.py                     
+├── requirements.txt              
+├── requirements-dev.txt          
+└── .gitignore                   
+```
+
 
 <img width="1440" height="1024" alt="Desktop - 8" src="https://github.com/user-attachments/assets/c15a7f28-e364-4ebf-be7b-1daa4cce345e" />
