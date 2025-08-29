@@ -77,5 +77,7 @@ Spotal은 **사용자의 기억과 상황에 맞춰**, 다음과 같은 입체�
 
 <img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white"> <img src="https://img.shields.io/badge/github-181717?style=for-the-badge&logo=github&logoColor=white"> <img src="https://img.shields.io/badge/notion-000000?style=for-the-badge&logo=notion&logoColor=white"> <img src="https://img.shields.io/badge/discord-5865F2?style=for-the-badge&logo=discord&logoColor=white"> 
 
+### 폴더 구조
+          
 
 <img width="1440" height="1024" alt="Desktop - 8" src="https://github.com/user-attachments/assets/c15a7f28-e364-4ebf-be7b-1daa4cce345e" />
