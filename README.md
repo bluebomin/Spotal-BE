@@ -147,5 +147,69 @@ Spotal은 **사용자의 기억과 상황에 맞춰**, 다음과 같은 입체�
 └── .gitignore                   
 ```
 
+### 실행 방법
+#### Prerequisites
+- **Python 3.8+**
+- **Git**
+- **AWS 계정** (S3 스토리지 사용)
+- **OpenAI API 키**
+- **Google Places API 키**
+
+#### 1. 프로젝트 클론
+```bash
+git clone https://github.com/your-username/Spotal-BE.git
+cd Spotal-BE
+```
+
+#### 2. 가상환경 생성 및 활성화
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+#### 3. 의존성 설치
+```bash
+pip install -r requirements.txt
+```
+
+#### 4. 환경변수 설정
+프로젝트 루트에 `.env` 파일을 생성하고 다음 정보를 입력:
+
+```env
+# Django 설정
+SECRET_KEY=your-secret-key-here
+DEBUG=True
+
+# AWS S3 설정
+AWS_ACCESS_KEY_ID=your-aws-access-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+AWS_STORAGE_BUCKET_NAME=your-s3-bucket-name
+AWS_S3_REGION_NAME=ap-northeast-2
+
+# API 키
+OPENAI_API_KEY=your-openai-api-key
+GOOGLE_API_KEY=your-google-places-api-key
+```
+
+#### 5. 데이터베이스 마이그레이션
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+
+#### 6. 개발 서버 실행
+```bash
+python manage.py runserver
+```
+
+서버가 실행되면 `http://localhost:8000`에서 접속할 수 있습니다.
+
+
 
 <img width="1440" height="1024" alt="Desktop - 8" src="https://github.com/user-attachments/assets/c15a7f28-e364-4ebf-be7b-1daa4cce345e" />
