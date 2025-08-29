@@ -97,7 +97,7 @@ Spotal은 **사용자의 기억과 상황에 맞춰**, 다음과 같은 입체�
 │   ├── serializers.py           # 추천 데이터 직렬화
 │   ├── views.py                 # 추천 API 뷰
 │   ├── services.py              # 추천 서비스 로직
-│   ├── signals.py               # Django 시그널 처리
+│   ├── signals.py               # 감정태그 기반 유저 AI 한줄요약
 │   └── 📁 services/             # 세부 서비스 모듈
 │       ├── emotion_service.py   # 감정 분석 서비스
 │       ├── gpt_service.py       # GPT AI 서비스
