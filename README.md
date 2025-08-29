@@ -62,7 +62,7 @@ Spotal은 **사용자의 기억과 상황에 맞춰**, 다음과 같은 입체�
 | 하지민 |  | PM / DE | 기획, UI/UX 디자인, 발표 자료 제작 |
 | 박세은 | <img width="200" height="200" alt="seeun_profile" src="https://github.com/user-attachments/assets/04515f3c-2c24-4e18-b29e-82dea6e54833" />| FE | Map, Hompage(mainpage), 배포   |
 | 이연서 | <img width="200" height="200" alt="yeonseo_profile" src="https://github.com/user-attachments/assets/ae766acf-f12f-48ea-8f8b-679a4225d8c5" />| FE | Onboarding, 회원가입/로그인, Mypage, 탐색, 배포 |
-| 김보민 | <img width="200" height="200" alt="김보민 미모티콘" src="https://github.com/user-attachments/assets/43a6bd4a-693d-4ede-a52a-230d928c9ada" /> | BE | 회원가입/로그인, 배포 |
+| 김보민 | <img width="180" height="180" alt="김보민 미모티콘" src="https://github.com/user-attachments/assets/43a6bd4a-693d-4ede-a52a-230d928c9ada" /> | BE | 회원가입/로그인, 배포 |
 | 안성민 |  | BE |  |
 | 최서아 | <img width="200" height="200" alt="seoah_profile" src="https://github.com/user-attachments/assets/adfce197-8703-478a-b731-3535e2d2c46b" />| BE |  |
 
