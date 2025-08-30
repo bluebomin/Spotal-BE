@@ -64,7 +64,7 @@ Spotal은 **사용자의 기억과 상황에 맞춰**, 다음과 같은 입체�
 | 이연서 | <img width="200" height="200" alt="yeonseo_profile" src="https://github.com/user-attachments/assets/ae766acf-f12f-48ea-8f8b-679a4225d8c5" />| FE | Onboarding, 회원가입/로그인, Mypage, 탐색, 배포 |
 | 김보민 | <img width="180" height="180" alt="김보민 미모티콘" src="https://github.com/user-attachments/assets/43a6bd4a-693d-4ede-a52a-230d928c9ada" /> | BE | 회원가입/로그인, 감정 기반 추천, OpenAI 연결, AWS EC2 배포 |
 | 안성민 | <img width="200" height="200" alt="미모티콘_안성민" src="https://github.com/user-attachments/assets/ece55bed-edb9-4e5e-aa52-18e657c0d6d1" /> | BE | 장소 기반 추천, 장소 AI 요약, 마이페이지 및 유저 AI 요약, 장소보관, 북마크 |
-| 최서아 | <img width="200" height="200" alt="seoah_profile" src="https://github.com/user-attachments/assets/adfce197-8703-478a-b731-3535e2d2c46b" />| BE |  |
+| 최서아 | <img width="200" height="200" alt="seoah_profile" src="https://github.com/user-attachments/assets/adfce197-8703-478a-b731-3535e2d2c46b" />| BE | 커뮤니티 CRUD, 구글맵 API 연결, 장소 AI 요약카드, 가게 정보 반 |
 
 </br>
 
@@ -80,71 +80,73 @@ Spotal은 **사용자의 기억과 상황에 맞춰**, 다음과 같은 입체�
 ### 폴더 구조
 
 ``` Spotal-BE/
-├── 📁 spotal/                    # Django 프로젝트 설정
-│   ├── settings.py              # 프로젝트 설정 및 환경변수
-│   ├── urls.py                  # 메인 URL 라우팅
-│   ├── wsgi.py                  # WSGI 애플리케이션
-│   └── asgi.py                  # ASGI 애플리케이션
+Spotal-BE/
+├── 📁 spotal/                          # Django 프로젝트 설정
+│   ├── settings.py                     # 프로젝트 설정 및 환경변수
+│   ├── urls.py                         # 메인 URL 라우팅
+│   ├── wsgi.py                         # WSGI 애플리케이션
+│   └── asgi.py                         # ASGI 애플리케이션
 │
-├── 📁 users/                     # 사용자 관리 앱
-│   ├── models.py                # 사용자 모델
-│   ├── serializers.py           # 사용자 데이터 직렬화
-│   ├── views.py                 # 사용자 관련 API 뷰
-│   └── urls.py                  # 사용자 URL 라우팅
+├── 📁 users/                           # 사용자 관리 앱
+│   ├── models.py                       # 사용자 모델
+│   ├── serializers.py                  # 사용자 데이터 직렬화
+│   ├── views.py                        # 사용자 관련 API 뷰
+│   └── urls.py                         # 사용자 URL 라우팅
 │
-├── 📁 recommendations/           # 장소 추천 시스템 앱
-│   ├── models.py                # 추천 관련 모델
-│   ├── serializers.py           # 추천 데이터 직렬화
-│   ├── views.py                 # 추천 API 뷰
-│   ├── services.py              # 추천 서비스 로직
-│   ├── signals.py               # 감정태그 기반 유저 AI 한줄요약
-│   └── 📁 services/             # 세부 서비스 모듈
-│       ├── emotion_service.py   # 감정 분석 서비스
-│       ├── gpt_service.py       # GPT AI 서비스
-│       ├── google_service.py    # Google Places API 연동
-│       ├── recommendation_service.py  # 추천 알고리즘
-│       └── utils.py             # 유틸리티 함수
+├── 📁 recommendations/                 # 장소 추천 시스템 앱
+│   ├── models.py                       # 추천 관련 모델
+│   ├── serializers.py                  # 추천 데이터 직렬화
+│   ├── views.py                        # 추천 API 뷰
+│   ├── services.py                     # 추천 서비스 로직
+│   ├── signals.py                      # 감정태그 기반 유저 AI 한줄요약
+│   └── 📁 services/                    # 세부 서비스 모듈
+│       ├── emotion_service.py          # 감정 분석 서비스
+│       ├── gpt_service.py              # GPT AI 서비스
+│       ├── google_service.py           # Google Places API 연동
+│       ├── recommendation_service.py   # 추천 알고리즘
+│       └── utils.py                    # 유틸리티 함수
 │
-├── 📁 search/                    # 장소 검색 앱
-│   ├── models.py                # 검색 관련 모델
-│   ├── serializers.py           # 검색 데이터 직렬화
-│   ├── views.py                 # 검색 API 뷰
-│   └── 📁 service/              # 검색 서비스 모듈
-│       ├── search.py            # 검색 엔진
-│       ├── address.py           # 주소 처리 서비스
-│       └── summary_card.py      # 요약 카드 생성
+├── 📁 search/                          # 장소 검색 앱
+│   ├── models.py                       # 검색 관련 모델
+│   ├── serializers.py                  # 검색 데이터 직렬화
+│   ├── views.py                        # 검색 API 뷰
+│   └── 📁 service/                     # 검색 서비스 모듈
+│       ├── search.py                   # 검색 엔진
+│       ├── address.py                  # 주소 처리 서비스
+│       └── summary_card.py             # 요약 카드 생성
 │
-├── 📁 infer/                     # AI 추론 및 분석 앱
-│   ├── models.py                # AI 분석 모델
-│   ├── serializers.py           # AI 데이터 직렬화
-│   ├── views.py                 # AI 분석 API 뷰
-│   └── services.py              # AI 분석 서비스
+├── 📁 infer/                           # AI 추론 및 분석 앱
+│   ├── models.py                       # AI 분석 모델
+│   ├── serializers.py                  # AI 데이터 직렬화
+│   ├── views.py                        # AI 분석 API 뷰
+│   └── services.py                     # AI 분석 서비스
 │
-├── 📁 community/                 # 커뮤니티 기능 앱
-│   ├── models.py                # 커뮤니티 모델
-│   ├── serializers.py           # 커뮤니티 데이터 직렬화
-│   ├── views.py                 # 커뮤니티 API 뷰
-│   ├── utils.py                 # 커뮤니티 유틸리티
-│   ├── ImageSerializer.py       # 이미지 처리 직렬화
-│   └── 📁 management/           # Django 관리 명령어
+├── 📁 community/                       # 커뮤니티 기능 앱
+│   ├── models.py                       # 커뮤니티 모델
+│   ├── serializers.py                  # 커뮤니티 데이터 직렬화
+│   ├── views.py                        # 커뮤니티 API 뷰
+│   ├── utils.py                        # 커뮤니티 유틸리티
+│   ├── ImageSerializer.py              # 이미지 처리 직렬화
+│   └── 📁 management/                  # Django 관리 명령어
 │       └── 📁 commands/
-│           └── load_initial_data.py  # 초기 데이터 로드
+│           └── load_initial_data.py    # 초기 데이터 로드
 │
-├── 📁 mypage/                    # 마이페이지 앱
-│   ├── models.py                # 마이페이지 모델
-│   ├── serializers.py           # 마이페이지 데이터 직렬화
-│   ├── views.py                 # 마이페이지 API 뷰
-│   └── urls.py                  # 마이페이지 URL 라우팅
+├── 📁 mypage/                          # 마이페이지 앱
+│   ├── models.py                       # 마이페이지 모델
+│   ├── serializers.py                  # 마이페이지 데이터 직렬화
+│   ├── views.py                        # 마이페이지 API 뷰
+│   └── urls.py                         # 마이페이지 URL 라우팅
 │
-├── 📁 data/                      # 데이터 파일
-│   ├── emotion.csv              # 감정 데이터
-│   ├── location.csv             # 위치 데이터
-│   └── 용산구이전가게.csv        # 용산구 이전 가게 데이터
+├── 📁 data/                            # 데이터 파일
+│   ├── emotion.csv                     # 감정 데이터
+│   ├── location.csv                    # 위치 데이터
+│   └── 용산구이전가게.csv               # 용산구 이전 가게 데이터
 │
-├── manage.py                     
-├── requirements.txt              
-├── requirements-dev.txt          
-└── .gitignore                   
+├── manage.py                           
+├── requirements.txt                   
+├── requirements-dev.txt                
+└── .gitignore                          
+               
 ```
 
 ### 실행 방법
