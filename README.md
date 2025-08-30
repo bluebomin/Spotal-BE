@@ -64,7 +64,7 @@ Spotal은 **사용자의 기억과 상황에 맞춰**, 다음과 같은 입체�
 | 이연서 | <img width="200" height="200" alt="yeonseo_profile" src="https://github.com/user-attachments/assets/ae766acf-f12f-48ea-8f8b-679a4225d8c5" />| FE | Onboarding, 회원가입/로그인, Mypage, 탐색, 배포 |
 | 김보민 | <img width="180" height="180" alt="김보민 미모티콘" src="https://github.com/user-attachments/assets/43a6bd4a-693d-4ede-a52a-230d928c9ada" /> | BE | 회원가입/로그인, 감정 기반 추천, OpenAI 연결, AWS EC2 배포 |
 | 안성민 | <img width="200" height="200" alt="미모티콘_안성민" src="https://github.com/user-attachments/assets/ece55bed-edb9-4e5e-aa52-18e657c0d6d1" /> | BE | 장소 기반 추천, 장소 AI 요약, 마이페이지 및 유저 AI 요약, 장소보관, 북마크 |
-| 최서아 | <img width="200" height="200" alt="seoah_profile" src="https://github.com/user-attachments/assets/adfce197-8703-478a-b731-3535e2d2c46b" />| BE | 커뮤니티 CRUD, 구글맵 API 연결, 장소 AI 요약카드, 가게 정보 반 |
+| 최서아 | <img width="200" height="200" alt="seoah_profile" src="https://github.com/user-attachments/assets/adfce197-8703-478a-b731-3535e2d2c46b" />| BE | 커뮤니티 CRUD, 구글맵 API 연결, 장소 AI 요약카드, 가게 정보 반환 |
 
 </br>
 
