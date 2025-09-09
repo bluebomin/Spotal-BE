@@ -74,3 +74,11 @@ class BookmarkSerializer(serializers.ModelSerializer):
         model = Bookmark
         fields = ["bookmark_id", "memory", "user", "memory_content", "created_date"]
         read_only_fields = ["user", "created_date"]
+
+class CommentSerializer(serializers.ModelSerializer):
+    nickname = serializers.CharField(source='user.nickname', read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ['comment_id', 'memory', 'user', 'nickname', 'content', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'created_at', 'updated_at']
