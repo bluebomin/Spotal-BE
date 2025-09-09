@@ -224,7 +224,13 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
 
         return Response({},status=status.HTTP_200_OK)
 
+# 커뮤니티 댓글
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all().order_by('-created_at')
+    serializer_class = CommentSerializer
+    permission_classes = [AllowAny]
 
+    
 # 커뮤니티 이미지만 처리
 class ImageViewSet(viewsets.ModelViewSet):
     queryset = Image.objects.all().order_by('-pk')
