@@ -241,6 +241,15 @@ class CommentViewSet(viewsets.ModelViewSet):
             raise ValidationError({"user_id": f"user_id {user_id} not found"})
         serializer.save(user=user)
 
+    def get_queryset(self):
+        queryset = Comment.objects.all().order_by('-created_at')
+        memory_id = self.request.query_params.get('memory_id')
+        if memory_id is None:
+            raise ValidationError({"memory_id": "memory_id query parameter is required"})
+        else :
+            queryset = queryset.filter(memory_id=memory_id)
+        return queryset
+
     
 # 커뮤니티 이미지만 처리
 class ImageViewSet(viewsets.ModelViewSet):
