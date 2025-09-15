@@ -44,7 +44,7 @@ class MemorySerializer(serializers.ModelSerializer):
             'emotions', 'location',              # 출력용
             'created_at', 'updated_at','images'
         ]
-        read_only_fields = ['user_id']
+        
 
     def validate(self, attrs):
         # 감정 최대 3개 제한
@@ -76,9 +76,10 @@ class BookmarkSerializer(serializers.ModelSerializer):
         read_only_fields = ["user", "created_date"]
 
 class CommentSerializer(serializers.ModelSerializer):
+    memory_id = serializers.PrimaryKeyRelatedField(source='memory', queryset=Memory.objects.all())
     nickname = serializers.CharField(source='user.nickname', read_only=True)
 
     class Meta:
         model = Comment
-        fields = ['comment_id', 'memory', 'user', 'nickname', 'content', 'created_at', 'updated_at']
-        read_only_fields = ['user', 'created_at', 'updated_at']
+        fields = ['comment_id', 'memory_id', 'user_id', 'nickname', 'content', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
