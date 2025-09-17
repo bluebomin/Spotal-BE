@@ -224,7 +224,33 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
 
         return Response({},status=status.HTTP_200_OK)
 
+# 커뮤니티 댓글
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all().order_by('-created_at')
+    serializer_class = CommentSerializer
+    permission_classes = [AllowAny]
+    
 
+    def perform_create(self, serializer):
+        user_id = self.request.data.get("user_id")
+        if not user_id:
+            raise ValidationError({"user_id": "user_id is required"})
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            raise ValidationError({"user_id": f"user_id {user_id} not found"})
+        serializer.save(user=user)
+
+    def get_queryset(self):
+        queryset = Comment.objects.all().order_by('-created_at')
+        memory_id = self.request.query_params.get('memory_id')
+        if memory_id is None:
+            raise ValidationError({"memory_id": "memory_id query parameter is required"})
+        else :
+            queryset = queryset.filter(memory_id=memory_id)
+        return queryset
+
+    
 # 커뮤니티 이미지만 처리
 class ImageViewSet(viewsets.ModelViewSet):
     queryset = Image.objects.all().order_by('-pk')

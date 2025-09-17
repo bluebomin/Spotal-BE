@@ -11,6 +11,7 @@ router_community.register(r'emotions', EmotionViewSet, basename='emotion')
 router_community.register(r'locations', LocationViewSet, basename='location')
 router_community.register(r'memories', MemoryViewSet, basename='memory')
 router_community.register(r'images', ImageViewSet, basename='image')
+router_community.register(r'comments', CommentViewSet, basename='comment')  
 
 
 urlpatterns = [
