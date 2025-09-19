@@ -242,13 +242,16 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(user=user)
 
     def get_queryset(self):
-        queryset = Comment.objects.all().order_by('-created_at')
+        qs = Comment.objects.all().order_by('-created_at')
+    
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return qs
         memory_id = self.request.query_params.get('memory_id')
         if memory_id is None:
             raise ValidationError({"memory_id": "memory_id query parameter is required"})
         else :
-            queryset = queryset.filter(memory_id=memory_id)
-        return queryset
+            qs = qs.filter(memory_id=memory_id)
+        return qs
 
     
 # 커뮤니티 이미지만 처리
