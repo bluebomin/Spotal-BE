@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from .serializers import UserSerializer, LoginSerializer, NicknameCheckSerializer, EmailCheckSerializer
 
 # Create your views here.
@@ -89,3 +89,17 @@ def check_email(request):
         'message': serializer.errors['email'][0],
         'available': False
     }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def logout_view(request):
+    """로그아웃 API"""
+    if request.user.is_authenticated:
+        logout(request)
+        return Response({
+            'message': '로그아웃이 완료되었습니다.'
+        }, status=status.HTTP_200_OK)
+    else:
+        return Response({
+            'message': '이미 로그아웃된 상태입니다.'
+        }, status=status.HTTP_400_BAD_REQUEST)
