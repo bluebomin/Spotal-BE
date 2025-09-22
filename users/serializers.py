@@ -42,6 +42,11 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError('이메일과 비밀번호를 모두 입력해주세요.')
         
         return attrs
+    
+class LogoutSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField()
+
 
 class NicknameCheckSerializer(serializers.Serializer):
     """닉네임 중복확인 시리얼라이저"""
