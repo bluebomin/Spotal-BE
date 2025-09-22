@@ -94,12 +94,8 @@ def check_email(request):
 @permission_classes([AllowAny])
 def logout_view(request):
     """로그아웃 API"""
-    if request.user.is_authenticated:
-        logout(request)
-        return Response({
-            'message': '로그아웃이 완료되었습니다.'
-        }, status=status.HTTP_200_OK)
-    else:
-        return Response({
-            'message': '이미 로그아웃된 상태입니다.'
-        }, status=status.HTTP_400_BAD_REQUEST)
+    # 세션 기반 로그아웃 (항상 실행)
+    logout(request)
+    return Response({
+        'message': '로그아웃이 완료되었습니다.'
+    }, status=status.HTTP_200_OK)
