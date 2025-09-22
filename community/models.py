@@ -2,6 +2,13 @@ from django.db import models
 from django.conf import settings
 
 # Create your models here.
+class Board(models.Model):
+    board_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
+    
 class Emotion(models.Model):
     emotion_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50, unique=True)
@@ -19,6 +26,10 @@ class Location(models.Model):
 # 커뮤니티 글
 class Memory(models.Model):
     memory_id = models.AutoField(primary_key=True)
+    board = models.ForeignKey(Board, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="memories",
+    ) 
     emotion_id = models.ManyToManyField(Emotion) # 감정 여러개 선택 가능
     location = models.ForeignKey(Location, on_delete=models.SET_NULL,
         null=True, blank=True,
