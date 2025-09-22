@@ -26,6 +26,10 @@ class Location(models.Model):
 # 커뮤니티 글
 class Memory(models.Model):
     memory_id = models.AutoField(primary_key=True)
+    board = models.ForeignKey(Board, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="memories",
+    ) 
     emotion_id = models.ManyToManyField(Emotion) # 감정 여러개 선택 가능
     location = models.ForeignKey(Location, on_delete=models.SET_NULL,
         null=True, blank=True,

@@ -5,7 +5,7 @@ from .ImageSerializer import ImageSerializer
 class BoardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
-        fields = '__all__'
+        fields = ['name']
 
 class EmotionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,6 +21,12 @@ class LocationSerializer(serializers.ModelSerializer):
 
 class MemorySerializer(serializers.ModelSerializer):
     # 입력용: PK 목록/단일 PK를 받아서 모델의 실제 필드(emotion_id/location_id)에 매핑
+    board_id = serializers.PrimaryKeyRelatedField(
+    source ='board',
+    queryset=Board.objects.all(),
+    required=False,
+    write_only=True
+    )
     emotion_id = serializers.PrimaryKeyRelatedField(
     queryset=Emotion.objects.all(),
     many=True,
@@ -36,6 +42,7 @@ class MemorySerializer(serializers.ModelSerializer):
     )
 
     # 출력용: 태그 상세를 함께 내려주고 싶을 때
+    board = serializers.CharField(source="board.name", read_only=True) 
     emotions = EmotionSerializer(source='emotion_id', many=True, read_only=True)
     location = LocationSerializer(read_only=True) #read_only=True는 출력에만
     images = serializers.SerializerMethodField() 
@@ -44,9 +51,9 @@ class MemorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Memory
         fields = [
-            'memory_id', 'user_id',"nickname",  'content',
+            'memory_id', 'user_id',"nickname",  'content','board_id',
             'emotion_id', 'location_id',        # 입력용
-            'emotions', 'location',              # 출력용
+            'board','emotions', 'location',              # 출력용
             'created_at', 'updated_at','images'
         ]
         
