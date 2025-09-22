@@ -75,5 +75,10 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='replies')
+
+    def is_reply(self):
+        return self.parent is not None
+
     def __str__(self):
         return f"Comment by {self.user.nickname} on Memory {self.memory.memory_id}"
