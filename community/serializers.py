@@ -2,6 +2,11 @@ from rest_framework import serializers
 from .models import *
 from .ImageSerializer import ImageSerializer
 
+class BoardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Board
+        fields = '__all__'
+
 class EmotionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Emotion

@@ -2,6 +2,13 @@ from django.db import models
 from django.conf import settings
 
 # Create your models here.
+class Board(models.Model):
+    board_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
+    
 class Emotion(models.Model):
     emotion_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50, unique=True)
