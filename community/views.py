@@ -256,11 +256,11 @@ class CommentViewSet(viewsets.ModelViewSet):
         if memory_id is None:
             raise ValidationError({"memory_id": "memory_id query parameter is required"})
         else :
-            qs = qs.filter(memory_id=memory_id)
+            qs = qs.filter(memory_id=memory_id,parent__isnull=True)
         return qs
     
     # 댓글을 조회할 때만(GET 요청일 때만) 답글 리스트를 반환하도록 수정
-    def get_comment(self):
+    def get_serializer_context(self):
         context = super().get_serializer_context()
         if self.action in ['list','retrieve']:
             context['include_replies'] = True

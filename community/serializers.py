@@ -87,7 +87,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_replies(self, obj):
         if obj.replies.exists():
-            return CommentSerializer(obj.replies.all(), many=True).data
+            return CommentSerializer(obj.replies.all(), many=True,context=self.context).data
         return []
     
     def to_representation(self, instance):
