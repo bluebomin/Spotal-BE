@@ -233,13 +233,19 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user_id = self.request.data.get("user_id")
+        parent_id = self.request.data.get("parent")
+        
         if not user_id:
             raise ValidationError({"user_id": "user_id is required"})
         try:
             user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             raise ValidationError({"user_id": f"user_id {user_id} not found"})
-        serializer.save(user=user)
+        if parent_id:
+            parent = Comment.objects.get(pk=parent_id) if parent_id else None
+            serializer.save(user=user,parent=parent,memory=parent.memory)
+        else:
+            serializer.save(user=user)
 
     def get_queryset(self):
         qs = Comment.objects.all().order_by('-created_at')
@@ -252,6 +258,14 @@ class CommentViewSet(viewsets.ModelViewSet):
         else :
             qs = qs.filter(memory_id=memory_id)
         return qs
+    
+    # 댓글을 조회할 때만(GET 요청일 때만) 답글 리스트를 반환하도록 수정
+    def get_comment(self):
+        context = super().get_serializer_context()
+        if self.action in ['list','retrieve']:
+            context['include_replies'] = True
+        return context
+
 
     
 # 커뮤니티 이미지만 처리

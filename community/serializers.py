@@ -76,10 +76,22 @@ class BookmarkSerializer(serializers.ModelSerializer):
         read_only_fields = ["user", "created_date"]
 
 class CommentSerializer(serializers.ModelSerializer):
-    memory_id = serializers.PrimaryKeyRelatedField(source='memory', queryset=Memory.objects.all())
+    memory_id = serializers.PrimaryKeyRelatedField(source='memory', queryset=Memory.objects.all(),required=False)
     nickname = serializers.CharField(source='user.nickname', read_only=True)
-
+    replies = serializers.SerializerMethodField()
+    
     class Meta:
         model = Comment
-        fields = ['comment_id', 'memory_id', 'user_id', 'nickname', 'content', 'created_at', 'updated_at']
+        fields = ['comment_id', 'memory_id', 'user_id', 'nickname', 'content', 'created_at', 'updated_at', 'parent', 'replies']
         read_only_fields = ['created_at', 'updated_at']
+
+    def get_replies(self, obj):
+        if obj.replies.exists():
+            return CommentSerializer(obj.replies.all(), many=True).data
+        return []
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if not self.context.get("include_replies",False):
+            ret.pop("replies",None)
+        return ret
