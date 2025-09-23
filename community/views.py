@@ -344,8 +344,10 @@ def my_community(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def get_replies(request,comment_id):
+def get_replies(request):
+    comment_id = request.query_params.get('comment_id')
     try:
+        comment_id = int(comment_id)
         comment = Comment.objects.get(pk=comment_id)
     except Comment.DoesNotExist:
         return Response({"error": f"Comment with id {comment_id} not found"}, status=status.HTTP_404_NOT_FOUND)
