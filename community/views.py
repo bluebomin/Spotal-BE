@@ -342,6 +342,18 @@ def my_community(request):
         status=status.HTTP_200_OK
     )
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_replies(request):
+    comment_id = request.query_params.get('comment_id')
+    try:
+        comment_id = int(comment_id)
+        comment = Comment.objects.get(pk=comment_id)
+    except Comment.DoesNotExist:
+        return Response({"error": f"Comment with id {comment_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = CommentSerializer(comment, context={'include_replies': True})
+    return Response( serializer.data.get('replies', []), status=status.HTTP_200_OK)
 
 # 북마크 생성
 class BookmarkCreateView(generics.CreateAPIView):
