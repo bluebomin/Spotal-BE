@@ -7,12 +7,24 @@ from community.models import Emotion, Location
 from search.service.address import normalize_korean_address
 from search.service.summary_card import generate_summary_card, generate_emotion_tags
 from search.service.search import get_place_details, get_place_id
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from recommendations.services.cache_service import CacheService
 
 logger = logging.getLogger(__name__)
 
 def call_gpt_api(prompt, model="gpt-4o-mini"):
-    """GPT API 호출 함수"""
+    """GPT API 호출 함수 (캐싱 적용)"""
     try:
+        # 캐시에서 먼저 조회
+        import hashlib
+        cache_key = f"gpt_api:{hashlib.md5(prompt.encode()).hexdigest()}"
+        cached_result = CacheService.get_cached_result(cache_key)
+        if cached_result:
+            logger.info("캐시에서 GPT 응답 조회")
+            return cached_result
+        
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
         
         response = client.chat.completions.create(
@@ -22,7 +34,12 @@ def call_gpt_api(prompt, model="gpt-4o-mini"):
             temperature=0.7
         )
         
-        return response.choices[0].message.content.strip()
+        result = response.choices[0].message.content.strip()
+        
+        # 결과를 캐시에 저장 (24시간)
+        CacheService.set_cached_result(cache_key, result, 86400)
+        
+        return result
         
     except Exception as e:
         logger.error(f"GPT API 호출 실패: {str(e)}")
@@ -47,13 +64,17 @@ def get_place_photo_url(photo_reference, max_width=400):
         return None
 
 def get_google_places_by_location(location_name, max_results=8):
-    """Google Maps API로 특정 지역의 고평점 가게들 조회"""
+    """Google Maps API로 특정 지역의 고평점 가게들 조회 (캐싱 적용)"""
     try:
+        # 캐시에서 먼저 조회
+        query = f"{location_name} 음식점 카페"
+        cached_results = CacheService.cache_google_places_search(query, location_name, ["restaurant"])
+        if cached_results:
+            logger.info(f"캐시에서 {location_name} 가게 목록 조회")
+            return cached_results[:max_results]
+        
         # Google Places API - Text Search
         url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-        
-        # 검색 쿼리 구성 (지역명 + 음식점/카페 등)
-        query = f"{location_name} 음식점 카페"
         
         params = {
             'query': query,
@@ -79,6 +100,7 @@ def get_google_places_by_location(location_name, max_results=8):
             if 'rating' in place and place['rating'] >= min_rating:
                 # 사진 URL 생성
                 image_url = ""
+                photo_ref = ""
                 if 'photos' in place and place['photos']:
                     photo_ref = place['photos'][0]['photo_reference']
                     image_url = get_place_photo_url(photo_ref)
@@ -100,6 +122,9 @@ def get_google_places_by_location(location_name, max_results=8):
         # 평점순 정렬
         high_rated_places.sort(key=lambda x: x['rating'], reverse=True)
         
+        # 결과를 캐시에 저장
+        CacheService.set_google_places_search(query, location_name, ["restaurant"], high_rated_places)
+        
         logger.info(f"{location_name}에서 평점 {min_rating}+ 가게 {len(high_rated_places)}개 발견")
         return high_rated_places[:max_results]
         
@@ -108,8 +133,24 @@ def get_google_places_by_location(location_name, max_results=8):
         return []
 
 def get_place_details_with_reviews(place_id, place_name=None):
-    """Google Places API로 가게 상세 정보와 리뷰 조회 - search 앱 서비스 활용"""
+    """Google Places API로 가게 상세 정보와 리뷰 조회 - search 앱 서비스 활용 (캐싱 적용)"""
     try:
+        # 캐시에서 먼저 조회
+        cached_details = CacheService.cache_google_place_details(place_id)
+        if cached_details:
+            logger.info(f"캐시에서 {place_id} 상세 정보 조회")
+            # search 앱에서 반환하는 status를 infer 앱의 status로 매핑
+            search_status = cached_details.get('business_status')
+            if search_status == '운영중':
+                cached_details['status'] = 'operating'
+            elif search_status == '폐업함':
+                cached_details['status'] = 'closed'
+            elif search_status == '이전함':
+                cached_details['status'] = 'moved'
+            else:
+                cached_details['status'] = 'operating'  # 기본값
+            return cached_details
+        
         # search 앱의 get_place_details 함수 사용 (이전함 상태 처리 포함)
         place_details = get_place_details(place_id, place_name)
         
@@ -126,6 +167,9 @@ def get_place_details_with_reviews(place_id, place_name=None):
             place_details['status'] = 'moved'
         else:
             place_details['status'] = 'operating'  # 기본값
+        
+        # 결과를 캐시에 저장
+        CacheService.set_google_place_details(place_id, place_details)
         
         return place_details
         
@@ -276,7 +320,7 @@ def get_inference_recommendations(location_ids, emotion_ids, max_results=10):  #
         
         # 3. 각 가게의 상세 정보 보강 (실제 리뷰 포함, 상위 3개만)
         enriched_places = []
-        for place in all_places[:6]:  # 상위 3개만 처리하여 시간 단축
+        for place in all_places[:3]:  # 상위 3개만 처리하여 시간 단축
             # Google Places API에서 상세 정보와 리뷰 가져오기
             place_details = get_place_details_with_reviews(place['place_id'], place['name'])
             enriched_place = enrich_place_with_details(place, place_details)

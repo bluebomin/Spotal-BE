@@ -216,4 +216,17 @@ CORS_ALLOW_CREDENTIALS = True
 #ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='13.124.195.6').split(',')
 ALLOWED_HOSTS = ["*"]
 
+# 캐시 설정 (성능 최적화)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 기본 5분
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+            'CULL_FREQUENCY': 3,
+        }
+    }
+}
+
 

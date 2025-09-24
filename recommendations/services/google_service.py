@@ -2,14 +2,20 @@
 
 import requests
 from django.conf import settings
+from .cache_service import CacheService
 
 API_KEY = settings.GOOGLE_API_KEY
 
 
 def get_place_details(place_id, place_name=None):
     """
-    Google Places Details API로 특정 place_id의 상세 정보 가져오기
+    Google Places Details API로 특정 place_id의 상세 정보 가져오기 (캐싱 적용)
     """
+    # 캐시에서 먼저 조회
+    cached_result = CacheService.cache_google_place_details(place_id)
+    if cached_result:
+        return cached_result
+    
     params = {
         "place_id": place_id,
         "key": API_KEY,
@@ -21,11 +27,21 @@ def get_place_details(place_id, place_name=None):
         params=params
     )
     data = response.json()
-    return data.get("result", {})
+    result = data.get("result", {})
+    
+    # 결과를 캐시에 저장
+    CacheService.set_google_place_details(place_id, result)
+    
+    return result
 
 
 def get_similar_places(address, emotion_names, allowed_types=None, max_results=8):
     query = f"{address} 맛집" if "cafe" not in (allowed_types or []) else f"{address} 카페"
+    
+    # 캐시에서 먼저 조회
+    cached_results = CacheService.cache_google_places_search(query, address, allowed_types or [])
+    if cached_results:
+        return cached_results[:max_results]
 
     params = {
         "query": query,
@@ -66,6 +82,9 @@ def get_similar_places(address, emotion_names, allowed_types=None, max_results=8
 
     # 점수 순 정렬
     results = sorted(results, key=lambda x: x["_score"], reverse=True)
+
+    # 결과를 캐시에 저장
+    CacheService.set_google_places_search(query, address, allowed_types or [], results)
 
     return results[:max_results]
 

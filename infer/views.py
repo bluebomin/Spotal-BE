@@ -13,6 +13,10 @@ from .services import get_inference_recommendations
 from community.models import Emotion, Location
 from recommendations.models import SavedPlace, Place
 from recommendations.services.google_service import get_photo_url
+import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -42,54 +46,43 @@ def get_inference_options(request):
 @permission_classes([AllowAny])
 def create_inference_session(request):
     """사용자 추론 세션 생성 및 Google Maps API + GPT 추천"""
+    start_time = time.time()
     try:
         user_id = request.data.get("user_id", None)  # user 필드 optional
 
-        print(f"=== 요청 데이터 확인 ===")
-        print(f"request.data: {request.data}")
-        print(f"request.data 타입: {type(request.data)}")
-        print(f"request.data 키들: {list(request.data.keys()) if hasattr(request.data, 'keys') else 'keys 없음'}")
+        logger.info(f"=== 추론 세션 생성 시작 ===")
+        logger.info(f"요청 데이터: {request.data}")
         
         # 1. 입력 데이터 검증
-        print(f"=== 시리얼라이저 검증 시작 ===")
         serializer = UserInferenceSessionCreateSerializer(data=request.data, context={'request': request})
-        print(f"시리얼라이저 생성 완료")
         
         if not serializer.is_valid():
-            print(f"시리얼라이저 검증 실패: {serializer.errors}")
+            logger.error(f"시리얼라이저 검증 실패: {serializer.errors}")
             return Response({
                 'error': '입력 데이터가 올바르지 않습니다.',
                 'details': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        print(f"시리얼라이저 검증 성공")
-        print(f"검증된 데이터: {serializer.validated_data}")
-        
         # 2. 추론 세션 생성
         session_data = serializer.validated_data
-        print(f"=== 세션 데이터 추출 ===")
-        print(f"session_data: {session_data}")
-        
-        # serializer 필드명과 일치
         location_id = session_data['selected_location']
         emotion_ids = session_data['selected_emotions']
         
-        print(f"location_id: {location_id} (타입: {type(location_id)})")
-        print(f"emotion_ids: {emotion_ids} (타입: {type(emotion_ids)})")
+        logger.info(f"위치: {location_id}, 감정: {emotion_ids}")
         
         # 3. Google Maps API + GPT 추천 생성 (평점 필터링 없음)
-        print(f"=== 추천 시스템 호출 시작 ===")
+        logger.info("=== 추천 시스템 호출 시작 ===")
         recommendations, error_message = get_inference_recommendations(
             location_id, emotion_ids  # location_id는 이미 리스트
         )
         
         if error_message:
-            print(f"추천 시스템 오류: {error_message}")
+            logger.error(f"추천 시스템 오류: {error_message}")
             return Response({
                 'error': error_message
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        print(f"추천 시스템 성공: {recommendations}")
+        logger.info(f"추천 시스템 성공: {len(recommendations.get('top_places', []))}개 가게")
 
         # 감정보관함 제외: user_id가 있으면 SavedPlace 필터링
         saved_shop_ids = []
@@ -99,17 +92,17 @@ def create_inference_session(request):
             ).values_list("shop_id", flat=True)
         
         # 4. 세션 저장
-        print(f"=== 세션 저장 시작 ===")
+        logger.info("=== 세션 저장 시작 ===")
         session = UserInferenceSession.objects.create(
             user=request.user if request.user.is_authenticated else None
         )
         # ManyToManyField 설정
         session.selected_location.set(location_id)
         session.selected_emotions.set(emotion_ids)
-        print(f"세션 저장 완료: {session.session_id}")
+        logger.info(f"세션 저장 완료: {session.session_id}")
         
         # 5. 새로운 모델 구조로 데이터 저장
-        print(f"=== 새로운 모델 구조로 데이터 저장 ===")
+        logger.info("=== 새로운 모델 구조로 데이터 저장 ===")
         saved_places = []
         
         for place_data in recommendations['top_places']:
@@ -186,23 +179,25 @@ def create_inference_session(request):
                 'modified_date': place.modified_date.isoformat()
             })
         
-        print(f"데이터 저장 완료: {len(saved_places)}개 장소")
+        logger.info(f"데이터 저장 완료: {len(saved_places)}개 장소")
         
         # 6. 응답 데이터 구성 - 프론트가 기대하는 구조 (places 배열만)
-        print(f"=== 응답 데이터 구성 ===")
+        logger.info("=== 응답 데이터 구성 ===")
         
-        print(f"응답 데이터 구성 완료")
+        # 성능 측정 및 로깅
+        execution_time = time.time() - start_time
+        logger.info(f"=== 추론 세션 생성 완료: {execution_time:.2f}초 ===")
         
         # 프론트가 기대하는 구조: places 배열만 반환
         return Response(saved_places, status=status.HTTP_201_CREATED)
         
     except Exception as e:
-        print(f"=== 뷰 함수 오류 발생 ===")
-        print(f"오류 타입: {type(e)}")
-        print(f"오류 메시지: {str(e)}")
+        execution_time = time.time() - start_time
+        logger.error(f"=== 뷰 함수 오류 발생: {execution_time:.2f}초 ===")
+        logger.error(f"오류 타입: {type(e)}")
+        logger.error(f"오류 메시지: {str(e)}")
         import traceback
-        print(f"전체 오류 추적:")
-        traceback.print_exc()
+        logger.error(f"전체 오류 추적: {traceback.format_exc()}")
         
         return Response({
             'error': f'추론 세션 생성에 실패했습니다: {str(e)}'
