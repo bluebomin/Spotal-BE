@@ -61,8 +61,12 @@ class RecommendationView(APIView):
 
             response_data = []
 
-            # 3. 후보 가게 상세 처리
+            # 3. 후보 가게 상세 처리 (최적화: 상위 5개만 처리)
+            processed_count = 0
             for c in candidate_places:
+                if processed_count >= 5:  # 상위 5개만 처리하여 시간 단축
+                    break
+                    
                 place_id = c.get("place_id")
                 place_name = c.get("name")
 
@@ -120,6 +124,7 @@ class RecommendationView(APIView):
 
                 # 직렬화 데이터 추가
                 response_data.append(PlaceSerializer(place).data)
+                processed_count += 1
 
             return Response(response_data, status=status.HTTP_201_CREATED)
 
