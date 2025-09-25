@@ -22,10 +22,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 class BookmarkSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
+    memory_id = serializers.IntegerField(source="memory.memory_id", read_only=True)  # 게시글 ID
 
     class Meta:
         model = Bookmark
-        fields = ["images"]
+        fields = ["memory_id", "images"]
 
     def get_images(self, obj):
         return [image.image_url for image in obj.memory.images.all()]
