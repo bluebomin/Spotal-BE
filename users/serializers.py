@@ -1,6 +1,10 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import User
+from django.core.files.storage import default_storage
+from uuid import uuid4
+from datetime import date
+import os
 
 class UserSerializer(serializers.ModelSerializer):
     """사용자 정보 시리얼라이저"""
@@ -67,3 +71,43 @@ class EmailCheckSerializer(serializers.Serializer):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError('이미 사용 중인 이메일입니다.')
         return value 
+    
+
+# 유저 프로필 이미지 업로드 부분
+class UserProfileSerializer(serializers.ModelSerializer):
+    # 업로드 전용 필드
+    profile_image = serializers.ImageField(write_only=True, required=False)
+    # 조회용 URL
+    profile_image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ["id", "email", "nickname", "detail", "profile_image", "profile_image_url"]
+
+    def validate_profile_image(self, file):
+        max_mb = 5
+        if file.size > max_mb * 1024 * 1024:
+            raise serializers.ValidationError(f"{max_mb}MB 이하만 업로드 가능합니다.")
+        allowed = {"image/jpeg", "image/png", "image/webp"}
+        if getattr(file, "content_type", None) not in allowed:
+            raise serializers.ValidationError("JPEG/PNG/WebP만 허용됩니다.")
+        return file
+
+    def update(self, instance, validated_data):
+        file = validated_data.pop("profile_image", None)
+
+        if file:
+            ext = os.path.splitext(file.name)[1]
+            key = f"users/profiles/{date.today():%Y/%m/%d}/{uuid4().hex}{ext}"
+            saved_key = default_storage.save(key, file)
+            name = os.path.basename(saved_key)
+
+            instance.profile_image_url = saved_key
+            instance.profile_image_name = name
+
+        return super().update(instance, validated_data)
+
+    def get_profile_image_url(self, obj):
+        if obj.profile_image_url:
+            return default_storage.url(obj.profile_image_url)
+        return None
