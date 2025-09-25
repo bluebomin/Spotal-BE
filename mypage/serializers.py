@@ -6,10 +6,18 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    profile_image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["nickname", "detail"]
+        fields = ["nickname", "detail", "profile_image_url"]
         read_only_fields = ["detail"] # 우선 세부설명은 수정 못하도록 명시해둠. 
+
+    def get_profile_image_url(self, obj):
+        if obj.profile_image_url:
+            from django.core.files.storage import default_storage
+            return default_storage.url(obj.profile_image_url)
+        return None
 
 
 class BookmarkSerializer(serializers.ModelSerializer):

@@ -74,15 +74,22 @@ class EmailCheckSerializer(serializers.Serializer):
     
 
 # 유저 프로필 이미지 업로드 부분
+from rest_framework import serializers
+from .models import User
+from django.core.files.storage import default_storage
+from uuid import uuid4
+from datetime import date
+import os
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
-    # 업로드 전용 필드
+    # 업로드 전용 (PUT 시만 사용)
     profile_image = serializers.ImageField(write_only=True, required=False)
-    # 조회용 URL
-    profile_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ["id", "email", "nickname", "detail", "profile_image", "profile_image_url"]
+        read_only_fields = ["profile_image_url"]
 
     def validate_profile_image(self, file):
         max_mb = 5
@@ -102,12 +109,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
             saved_key = default_storage.save(key, file)
             name = os.path.basename(saved_key)
 
-            instance.profile_image_url = saved_key
+            instance.profile_image_url = default_storage.url(saved_key)
             instance.profile_image_name = name
 
-        return super().update(instance, validated_data)
+        # ❗ 이미지 삭제 시 profile_image_url null 보장
+        if instance.profile_image_url is None:
+            instance.profile_image_url = None
 
-    def get_profile_image_url(self, obj):
-        if obj.profile_image_url:
-            return default_storage.url(obj.profile_image_url)
-        return None
+        return super().update(instance, validated_data)
