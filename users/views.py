@@ -1,11 +1,22 @@
 from django.shortcuts import render
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import login, logout
-from .serializers import UserSerializer, LoginSerializer, NicknameCheckSerializer, EmailCheckSerializer
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.core.files.storage import default_storage
+
+from .serializers import (
+    UserSerializer,
+    LoginSerializer,
+    NicknameCheckSerializer,
+    EmailCheckSerializer,
+    UserProfileSerializer
+)
+from .models import User
+
 
 # Create your views here.
 
@@ -99,3 +110,50 @@ def logout_view(request):
     return Response({
         'message': '로그아웃이 완료되었습니다.'
     }, status=status.HTTP_200_OK)
+
+
+# 프로필 이미지 조회, 수정, 삭제
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([AllowAny])
+@parser_classes([MultiPartParser, FormParser])  # 파일 업로드 허용
+def user_profile(request):
+    """내 프로필 조회 / 수정 / 삭제 API"""
+    user = request.user
+
+        # 로그인 안 된 경우 처리 (AllowAny로 풀어놨기 때문에 추가한 부분.)
+    if not user.is_authenticated:
+        if request.method == 'GET':
+            # 조회는 가능하지만, 로그인 안 했으면 빈 값 반환
+            return Response({
+                "id": None,
+                "email": None,
+                "nickname": None,
+                "detail": None,
+                "profile_image_url": None,
+            }, status=status.HTTP_200_OK)
+        else:
+            # PATCH, DELETE는 차단
+            return Response(
+                {"error": "로그인이 필요합니다."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+    # 로그인된 경우만 본래 기능 수행하도록 함.
+    if request.method == 'GET':
+        serializer = UserProfileSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    elif request.method == 'PATCH':
+        serializer = UserProfileSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        if user.profile_image_url:
+            default_storage.delete(user.profile_image_url)
+            user.profile_image_url = None
+            user.profile_image_name = None
+            user.save()
+        return Response({"message": "프로필 이미지가 삭제되었습니다."}, status=status.HTTP_200_OK)
