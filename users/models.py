@@ -30,6 +30,11 @@ class User(AbstractUser):
     email = models.EmailField(unique=True, verbose_name='이메일')
     nickname = models.CharField(max_length=255, verbose_name='닉네임')
     detail = models.CharField(max_length=255, blank=True, verbose_name='회원설명')
+
+
+    # [프로필 이미지] 이미지 자체는 파일로 저장하지 않고 S3 Key만 DB에 저장
+    profile_image_url = models.URLField(max_length=500, blank=True, null=True)  
+    profile_image_name = models.CharField(max_length=200, blank=True, null=True)
     
     # username 필드 대신 email을 사용자 식별자로 사용
     USERNAME_FIELD = 'email'
