@@ -114,7 +114,7 @@ def logout_view(request):
 
 
 # 프로필 이미지 조회, 수정, 삭제
-@api_view(['GET', 'PATCH', 'DELETE'])
+@api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([AllowAny])
 @parser_classes([MultiPartParser, FormParser])
 def user_profile(request, user_id):
