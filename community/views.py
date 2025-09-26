@@ -112,15 +112,15 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
                 sel_count=Count('emotion_id', filter=Q(emotion_id__in=ids), distinct=True)
             ).filter(sel_count=len(ids))
 
-            # 보드 필터
-            board = params.get('board_id')
-            if board is not None:
-                if not str(board).isdigit():
-                    raise ValidationError({"board_id": "정수 ID여야 합니다."})
-                board = int(board)
-                if not Board.objects.filter(pk=board).exists():
-                    raise ValidationError({"board_id": f"존재하지 않는 보드 ID {board}"})
-                qs = qs.filter(board_id=board)
+        # 보드 필터
+        board = params.get('board_id')
+        if board is not None:
+            if not str(board).isdigit():
+                raise ValidationError({"board_id": "정수 ID여야 합니다."})
+            board = int(board)
+            if not Board.objects.filter(pk=board).exists():
+                raise ValidationError({"board_id": f"존재하지 않는 보드 ID {board}"})
+            qs = qs.filter(board_id=board)
 
         return qs
 
