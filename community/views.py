@@ -316,8 +316,8 @@ def my_community(request):
     qs = (
         Memory.objects
         .filter(user_id=user_id)
-        .select_related('location')
-        .prefetch_related('emotion_id')   # 모델에서 사용중인 related name에 맞추세요
+        .select_related('location','board')
+        .prefetch_related('emotion_id')   
         .order_by('-created_at')
     )
 
@@ -342,11 +342,21 @@ def my_community(request):
         missing = [i for i in ids if not Emotion.objects.filter(pk=i).exists()]
         if missing:
             raise ValidationError({"emotion_ids": f"존재하지 않는 감정 ID: {missing}"})
-
-        # 선택한 모든 감정을 가진 항목만
+        
+         # 선택한 모든 감정을 가진 항목만
         qs = qs.annotate(
             sel_count=Count('emotion_id', filter=Q(emotion_id__in=ids), distinct=True)
         ).filter(sel_count=len(ids))
+
+    # 5) 보드 필터 (단일)
+    board = request.query_params.get('board_id')
+    if board:
+        if not str(board).isdigit():
+            raise ValidationError({"board_id": "정수 ID여야 합니다."})
+        board = int(board)
+        if not Board.objects.filter(pk=board).exists():
+            raise ValidationError({"board_id": f"존재하지 않는 보드 ID {board}"})
+        qs = qs.filter(board_id=board)
 
     serializer = MemorySerializer(qs, many=True)
     return Response(
