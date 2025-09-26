@@ -49,13 +49,14 @@ class MemorySerializer(serializers.ModelSerializer):
     nickname = serializers.CharField(source='user.nickname', read_only=True)
     profile_image_url = serializers.SerializerMethodField() 
     comment_count = serializers.SerializerMethodField(read_only=True)
+    bookmark_count = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Memory
         fields = [
             'memory_id', 'user_id',"nickname", "profile_image_url", 'content','board_id',
             'emotion_id', 'location_id',        # 입력용
-            'board','emotions', 'location', 'comment_count',             # 출력용
+            'board','emotions', 'location', 'comment_count', 'bookmark_count' ,         # 출력용
             'created_at', 'updated_at','images'
         ]
         
@@ -85,6 +86,9 @@ class MemorySerializer(serializers.ModelSerializer):
     
     def get_comment_count(self, obj):
         return obj.comments.count()
+    
+    def get_bookmark_count(self, obj):
+        return obj.bookmarks.count()
 
 class BookmarkSerializer(serializers.ModelSerializer):
     memory_content = serializers.CharField(source="memory.content", read_only=True)
@@ -92,6 +96,7 @@ class BookmarkSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bookmark
         fields = ["bookmark_id", "memory", "user", "memory_content", "created_date"]
+        read_only_fields = ["user", "created_date"]
         
 
 class CommentSerializer(serializers.ModelSerializer):
