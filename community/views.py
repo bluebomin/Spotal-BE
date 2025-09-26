@@ -2,7 +2,7 @@ import os
 from rest_framework import viewsets, status, generics
 from .models import *
 from .serializers import *
-from .ImageSerializer import * 
+from .ImageSerializers import * 
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.db.models import Count, Q
