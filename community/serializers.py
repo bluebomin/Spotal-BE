@@ -42,7 +42,7 @@ class MemorySerializer(serializers.ModelSerializer):
     )
 
     # 출력용: 태그 상세를 함께 내려주고 싶을 때
-    board = serializers.CharField(source="board.name", read_only=True) 
+    board = BoardSerializer(read_only=True)
     emotions = EmotionSerializer(source='emotion_id', many=True, read_only=True)
     location = LocationSerializer(read_only=True) #read_only=True는 출력에만
     images = serializers.SerializerMethodField() 
