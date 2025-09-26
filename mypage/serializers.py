@@ -14,10 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ["detail"] # 우선 세부설명은 수정 못하도록 명시해둠. 
 
     def get_profile_image_url(self, obj):
-        if obj.profile_image_url:
-            from django.core.files.storage import default_storage
-            return default_storage.url(obj.profile_image_url)
-        return None
+        return obj.profile_image_url or None
 
 
 class BookmarkSerializer(serializers.ModelSerializer):
