@@ -351,3 +351,5 @@ myvenv/
 
 # SSH Keys
 *.pem
+*.key
+*.ppk

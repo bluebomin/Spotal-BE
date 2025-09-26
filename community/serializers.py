@@ -2,6 +2,11 @@ from rest_framework import serializers
 from .models import *
 from .ImageSerializer import ImageSerializer
 
+class BoardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Board
+        fields ='__all__'
+
 class EmotionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Emotion
@@ -16,6 +21,12 @@ class LocationSerializer(serializers.ModelSerializer):
 
 class MemorySerializer(serializers.ModelSerializer):
     # 입력용: PK 목록/단일 PK를 받아서 모델의 실제 필드(emotion_id/location_id)에 매핑
+    board_id = serializers.PrimaryKeyRelatedField(
+    source ='board',
+    queryset=Board.objects.all(),
+    required=False,
+    write_only=True
+    )
     emotion_id = serializers.PrimaryKeyRelatedField(
     queryset=Emotion.objects.all(),
     many=True,
@@ -31,20 +42,23 @@ class MemorySerializer(serializers.ModelSerializer):
     )
 
     # 출력용: 태그 상세를 함께 내려주고 싶을 때
+    board = BoardSerializer(read_only=True)
     emotions = EmotionSerializer(source='emotion_id', many=True, read_only=True)
     location = LocationSerializer(read_only=True) #read_only=True는 출력에만
     images = serializers.SerializerMethodField() 
     nickname = serializers.CharField(source='user.nickname', read_only=True)
+    profile_image_url = serializers.SerializerMethodField() 
+    comment_count = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Memory
         fields = [
-            'memory_id', 'user_id',"nickname",  'content',
+            'memory_id', 'user_id',"nickname", "profile_image_url", 'content','board_id',
             'emotion_id', 'location_id',        # 입력용
-            'emotions', 'location',              # 출력용
+            'board','emotions', 'location', 'comment_count',             # 출력용
             'created_at', 'updated_at','images'
         ]
-        read_only_fields = ['user_id']
+        
 
     def validate(self, attrs):
         # 감정 최대 3개 제한
@@ -63,9 +77,14 @@ class MemorySerializer(serializers.ModelSerializer):
             }
             for img in obj.images.all()
             ]
-
-
-
+    
+    def get_profile_image_url(self, obj):
+        if obj.user and obj.user.profile_image_url:
+            return obj.user.profile_image_url
+        return None
+    
+    def get_comment_count(self, obj):
+        return obj.comments.count()
 
 class BookmarkSerializer(serializers.ModelSerializer):
     memory_content = serializers.CharField(source="memory.content", read_only=True)
@@ -73,4 +92,31 @@ class BookmarkSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bookmark
         fields = ["bookmark_id", "memory", "user", "memory_content", "created_date"]
-        read_only_fields = ["user", "created_date"]
+        
+
+class CommentSerializer(serializers.ModelSerializer):
+    memory_id = serializers.PrimaryKeyRelatedField(source='memory', queryset=Memory.objects.all(),required=False)
+    nickname = serializers.CharField(source='user.nickname', read_only=True)
+    profile_image_url = serializers.SerializerMethodField()
+    replies = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Comment
+        fields = ['comment_id', 'memory_id', 'user_id', 'nickname', 'profile_image_url', 'content', 'created_at', 'updated_at', 'parent', 'replies']
+       
+
+    def get_replies(self, obj):
+        if obj.replies.exists():
+            return CommentSerializer(obj.replies.all(), many=True).data
+        return []
+    
+    def get_profile_image_url(self, obj):
+        if obj.user and obj.user.profile_image_url:
+            return obj.user.profile_image_url
+        return None
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if not self.context.get("include_replies",False):
+            ret.pop("replies",None)
+        return ret

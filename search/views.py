@@ -29,7 +29,7 @@ def store_card(request):
         return Response({"message": "위도(lat), 경도(lng)는 숫자여야 합니다."}, status=400)
 
     # 1. 구글 Place ID 찾기 (위치 기반 + 유사도)
-    place_id, place_name = get_place_id(query, lat, lng, threshold=60)
+    place_id, place_name = get_place_id(query, lat, lng, threshold=90)
     if not place_id:
         return Response({"message": "구글맵에서 가게를 찾을 수 없습니다."}, status=200)
 
@@ -37,7 +37,7 @@ def store_card(request):
     details = get_place_details(place_id, place_name)
     reviews = [r["text"] for r in details.get("reviews", [])]
     uptaenms = details.get("types", [])
-    print(reviews[0])
+    
 
     # 영문 → 한국어 변환 처리 (GPT API)
     name = details.get("name")
@@ -81,9 +81,6 @@ def store_card(request):
 
     serializer.is_valid(raise_exception=True)
     shop = serializer.save()
-
-
-    print(details.keys())
 
     # 7. 응답
     return Response({

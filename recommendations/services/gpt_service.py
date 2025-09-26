@@ -1,9 +1,6 @@
 # GPT 요약
 
-from openai import OpenAI
-from django.conf import settings
-
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+from .gpt_client import client
 
 def generate_summary(place):
     """
@@ -26,7 +23,7 @@ def generate_summary(place):
     completion = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
+        temperature=0.2,
         max_tokens=50
     )
 

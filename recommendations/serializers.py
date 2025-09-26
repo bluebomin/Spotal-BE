@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import *
 from community.models import *
+from .services.google_service import get_photo_url
 
 
 # AI 요약 정보
@@ -20,6 +21,9 @@ class PlaceSerializer(serializers.ModelSerializer):
     )   
     location = serializers.CharField(source="location.name", read_only=True)
     ai_summary = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    rec = serializers.SerializerMethodField()  
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Place
@@ -27,19 +31,40 @@ class PlaceSerializer(serializers.ModelSerializer):
             "shop_id",
             "name",
             "address",
+            "rec",
             "emotions",      # [ "정겨움", "힐링" ] 
             "location",      # "청파동"
             "ai_summary",
-            "image_url",
+            "image_url", # 동적으로 생성되게 됨!! 
+            "status",
             "created_date",
-            "modified_date",
+            "modified_date"
         )
         read_only_fields = ("shop_id", "created_date", "modified_date")
 
     def get_ai_summary(self, obj):
-        # Place와 연결된 AISummary 중 최신 하나 가져오기
-        summary = obj.ai_summary.order_by("-created_date").first()
-        return summary.summary if summary else None
+        request = self.context.get("request")
+        rec = None
+        if request:
+            rec = request.query_params.get("rec") or request.data.get("rec")
+
+        if str(rec) == "2":
+            summary_obj = obj.infer_ai_summary.order_by("-created_date").first()
+        else:
+            summary_obj = obj.ai_summary.order_by("-created_date").first()
+
+        return summary_obj.summary if summary_obj else None
+    
+    def get_status(self, obj):
+        return obj.get_status_display() if obj.status else None
+
+    def get_rec(self, obj):
+        return 1 
+    
+    def get_image_url(self, obj):
+        if obj.photo_reference:
+            return get_photo_url(obj.photo_reference)
+        return None
 
 
 
@@ -52,7 +77,7 @@ class SavedPlaceCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SavedPlace
-        fields = ("saved_id", "shop", "user", "created_date")
+        fields = ("saved_id", "shop", "user", "rec", "created_date")
         read_only_fields = ("saved_id", "created_date") # user는 body에서 직접 넘기도록 
 
 
@@ -62,7 +87,6 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source="shop.name", read_only=True)
     address = serializers.CharField(source="shop.address", read_only=True)
     location = serializers.CharField(source="shop.location.name", read_only=True)
-    image_url = serializers.CharField(source="shop.image_url", read_only=True)
     summary = serializers.SerializerMethodField()
     emotions = serializers.SlugRelatedField(
         many=True,
@@ -70,6 +94,8 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
         slug_field="name",
         source="shop.emotions"   # Place.emotions → string 배열
     )
+    status = serializers.SerializerMethodField()    
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = SavedPlace
@@ -81,12 +107,25 @@ class SavedPlaceSerializer(serializers.ModelSerializer):
             "address",
             "emotions",
             "location",
-            "image_url",
+            "image_url", # 동적 url로 바꿈!!! 
             "summary",
+            "status",
             "created_date",
+            "rec",
         )
         read_only_fields = ("saved_id", "created_date")
 
     def get_summary(self, obj):
-        summary = obj.shop.ai_summary.order_by("-created_date").first()
+        if obj.rec == 2:
+            summary = obj.shop.infer_ai_summary.order_by("-created_date").first()
+        else:
+            summary = obj.shop.ai_summary.order_by("-created_date").first()
         return summary.summary if summary else None
+    
+    def get_status(self, obj):
+        return "운영중"  
+    
+    def get_image_url(self, obj):
+        if obj.shop.photo_reference:
+            return get_photo_url(obj.shop.photo_reference)
+        return None

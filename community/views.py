@@ -14,6 +14,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
 from django.contrib.auth import get_user_model
+from django.db.models import Count
 
 
 User = get_user_model()
@@ -58,7 +59,9 @@ class LocationViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny] 
 
 class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
-    queryset = Memory.objects.all().order_by('-created_at')
+    queryset = Memory.objects.annotate(
+        comment_count=Count("comments", distinct=True)
+    ).order_by('-created_at')
     serializer_class = MemorySerializer
     parser_classes = [MultiPartParser, FormParser]  # 이미지 + 텍스트 같이 받으려면 필요
     permission_classes = [AllowAny]
@@ -70,15 +73,17 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
     def tag_options(self, request):
         emotions = Emotion.objects.all().order_by('pk')
         locations = Location.objects.all().order_by('pk')
+        boards = Board.objects.all().order_by('pk')
         return Response({
             'emotions': EmotionSerializer(emotions, many=True).data,
-            'locations': LocationSerializer(locations, many=True).data
+            'locations': LocationSerializer(locations, many=True).data,
+            'boards': BoardSerializer(boards, many=True).data
         })
 
-    # 커뮤니티 글 목록 조회 (필터링)
+    # 커뮤니티 글 목록 조회 (필터링 / 위치, 감정, 게시글분류 포함)
     def get_queryset(self):
         qs = super().get_queryset() \
-            .select_related('location') \
+            .select_related('location','board') \
             .prefetch_related('emotion_id')
 
         params = self.request.query_params
@@ -109,6 +114,16 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
             qs = qs.annotate(
                 sel_count=Count('emotion_id', filter=Q(emotion_id__in=ids), distinct=True)
             ).filter(sel_count=len(ids))
+
+        # 보드 필터
+        board = params.get('board_id')
+        if board is not None:
+            if not str(board).isdigit():
+                raise ValidationError({"board_id": "정수 ID여야 합니다."})
+            board = int(board)
+            if not Board.objects.filter(pk=board).exists():
+                raise ValidationError({"board_id": f"존재하지 않는 보드 ID {board}"})
+            qs = qs.filter(board_id=board)
 
         return qs
 
@@ -224,7 +239,50 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
 
         return Response({},status=status.HTTP_200_OK)
 
+# 커뮤니티 댓글
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all().order_by('-created_at')
+    serializer_class = CommentSerializer
+    permission_classes = [AllowAny]
+    
 
+    def perform_create(self, serializer):
+        user_id = self.request.data.get("user_id")
+        parent_id = self.request.data.get("parent")
+        
+        if not user_id:
+            raise ValidationError({"user_id": "user_id is required"})
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            raise ValidationError({"user_id": f"user_id {user_id} not found"})
+        if parent_id:
+            parent = Comment.objects.get(pk=parent_id) if parent_id else None
+            serializer.save(user=user,parent=parent,memory=parent.memory)
+        else:
+            serializer.save(user=user)
+
+    def get_queryset(self):
+        qs = Comment.objects.all().order_by('-created_at')
+    
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return qs
+        memory_id = self.request.query_params.get('memory_id')
+        if memory_id is None:
+            raise ValidationError({"memory_id": "memory_id query parameter is required"})
+        else :
+            qs = qs.filter(memory_id=memory_id,parent__isnull=True)
+        return qs
+    
+    # 댓글을 조회할 때만(GET 요청일 때만) 답글 리스트를 반환하도록 수정
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action in ['list','retrieve']:
+            context['include_replies'] = True
+        return context
+
+
+    
 # 커뮤니티 이미지만 처리
 class ImageViewSet(viewsets.ModelViewSet):
     queryset = Image.objects.all().order_by('-pk')
@@ -261,8 +319,8 @@ def my_community(request):
     qs = (
         Memory.objects
         .filter(user_id=user_id)
-        .select_related('location')
-        .prefetch_related('emotion_id')   # 모델에서 사용중인 related name에 맞추세요
+        .select_related('location','board')
+        .prefetch_related('emotion_id')   
         .order_by('-created_at')
     )
 
@@ -287,11 +345,21 @@ def my_community(request):
         missing = [i for i in ids if not Emotion.objects.filter(pk=i).exists()]
         if missing:
             raise ValidationError({"emotion_ids": f"존재하지 않는 감정 ID: {missing}"})
-
-        # 선택한 모든 감정을 가진 항목만
+        
+         # 선택한 모든 감정을 가진 항목만
         qs = qs.annotate(
             sel_count=Count('emotion_id', filter=Q(emotion_id__in=ids), distinct=True)
         ).filter(sel_count=len(ids))
+
+    # 5) 보드 필터 (단일)
+    board = request.query_params.get('board_id')
+    if board:
+        if not str(board).isdigit():
+            raise ValidationError({"board_id": "정수 ID여야 합니다."})
+        board = int(board)
+        if not Board.objects.filter(pk=board).exists():
+            raise ValidationError({"board_id": f"존재하지 않는 보드 ID {board}"})
+        qs = qs.filter(board_id=board)
 
     serializer = MemorySerializer(qs, many=True)
     return Response(
@@ -299,6 +367,18 @@ def my_community(request):
         status=status.HTTP_200_OK
     )
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_replies(request):
+    comment_id = request.query_params.get('comment_id')
+    try:
+        comment_id = int(comment_id)
+        comment = Comment.objects.get(pk=comment_id)
+    except Comment.DoesNotExist:
+        return Response({"error": f"Comment with id {comment_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = CommentSerializer(comment, context={'include_replies': True})
+    return Response( serializer.data.get('replies', []), status=status.HTTP_200_OK)
 
 # 북마크 생성
 class BookmarkCreateView(generics.CreateAPIView):
