@@ -224,7 +224,50 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
 
         return Response({},status=status.HTTP_200_OK)
 
+# 커뮤니티 댓글
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all().order_by('-created_at')
+    serializer_class = CommentSerializer
+    permission_classes = [AllowAny]
+    
 
+    def perform_create(self, serializer):
+        user_id = self.request.data.get("user_id")
+        parent_id = self.request.data.get("parent")
+        
+        if not user_id:
+            raise ValidationError({"user_id": "user_id is required"})
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            raise ValidationError({"user_id": f"user_id {user_id} not found"})
+        if parent_id:
+            parent = Comment.objects.get(pk=parent_id) if parent_id else None
+            serializer.save(user=user,parent=parent,memory=parent.memory)
+        else:
+            serializer.save(user=user)
+
+    def get_queryset(self):
+        qs = Comment.objects.all().order_by('-created_at')
+    
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return qs
+        memory_id = self.request.query_params.get('memory_id')
+        if memory_id is None:
+            raise ValidationError({"memory_id": "memory_id query parameter is required"})
+        else :
+            qs = qs.filter(memory_id=memory_id,parent__isnull=True)
+        return qs
+    
+    # 댓글을 조회할 때만(GET 요청일 때만) 답글 리스트를 반환하도록 수정
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action in ['list','retrieve']:
+            context['include_replies'] = True
+        return context
+
+
+    
 # 커뮤니티 이미지만 처리
 class ImageViewSet(viewsets.ModelViewSet):
     queryset = Image.objects.all().order_by('-pk')
@@ -299,6 +342,18 @@ def my_community(request):
         status=status.HTTP_200_OK
     )
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_replies(request):
+    comment_id = request.query_params.get('comment_id')
+    try:
+        comment_id = int(comment_id)
+        comment = Comment.objects.get(pk=comment_id)
+    except Comment.DoesNotExist:
+        return Response({"error": f"Comment with id {comment_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = CommentSerializer(comment, context={'include_replies': True})
+    return Response( serializer.data.get('replies', []), status=status.HTTP_200_OK)
 
 # 북마크 생성
 class BookmarkCreateView(generics.CreateAPIView):

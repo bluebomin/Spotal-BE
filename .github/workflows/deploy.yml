@@ -1,0 +1,59 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # 수동 실행도 가능
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 3.34.90.75  # 새 EC2 IP 주소로 변경
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            echo "배포 시작: $(date)"
+            
+            # 프로젝트 디렉토리로 이동
+            cd Spotal-BE
+            
+            # 현재 브랜치 확인
+            echo "현재 브랜치: $(git branch --show-current)"
+            
+            # 최신 코드 가져오기
+            echo "Git pull 시작"
+            git pull origin main
+            
+            # 의존성 설치
+            echo "의존성 설치..."
+            pip3 install -r requirements.txt
+            
+            # 데이터베이스 마이그레이션
+            echo "데이터베이스 마이그레이션..."
+            python3 manage.py migrate
+            
+            # 정적 파일 수집
+            echo "정적 파일 수집..."
+            python3 manage.py collectstatic --noinput
+            
+            # Nginx 재시작
+            echo "Nginx 재시작..."
+            sudo systemctl restart nginx
+            
+            # Django 프로세스 재시작 (supervisor 사용 시)
+            # sudo supervisorctl restart spotal
+            
+            echo "배포 완료: $(date)"
+            
+            # 서버 상태 확인
+            echo "서버 상태 확인..."
+            sudo systemctl status nginx --no-pager -l

@@ -139,6 +139,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # S3 settings
 
 # settings.py
+AWS_ACCESS_KEY_ID=env("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY=env("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ap-northeast-2")
 
@@ -170,7 +172,7 @@ AUTH_USER_MODEL = 'users.User'
 
 # Django REST Framework 설정
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # 'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',  # 주석 처리
     'DEFAULT_AUTHENTICATION_CLASSES': [
         # 'rest_framework_simplejwt.authentication.JWTAuthentication',
         # 'rest_framework.authentication.SessionAuthentication',  # 세션 인증 비활성화
@@ -180,14 +182,14 @@ REST_FRAMEWORK = {
     ],
 }
 
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'Spotal Backend API',
-    'DESCRIPTION': 'Spotal 프로젝트의 백엔드 API 명세서',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-    'COMPONENT_SPLIT_REQUEST': True,
-    'SCHEMA_PATH_PREFIX': '/api/',
-}
+# SPECTACULAR_SETTINGS = {
+#     'TITLE': 'Spotal Backend API',
+#     'DESCRIPTION': 'Spotal 프로젝트의 백엔드 API 명세서',
+#     'VERSION': '1.0.0',
+#     'SERVE_INCLUDE_SCHEMA': False,
+#     'COMPONENT_SPLIT_REQUEST': True,
+#     'SCHEMA_PATH_PREFIX': '/api/',
+# }
 
 OPENAI_API_KEY = env('OPENAI_API_KEY')
 #PUBLIC_DATA_API_KEY = config('PUBLIC_DATA_API_KEY')
@@ -201,7 +203,9 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
+    "https://spotal.vercel.app",  # Vercel 프론트엔드
+    "http://localhost:5173",      # 로컬 개발용
+    "http://localhost:3000",      # 로컬 개발용
     "http://spotal-fe-bucket.s3-website.ap-northeast-2.amazonaws.com",
     "https://spotal-fe-bucket.s3-website.ap-northeast-2.amazonaws.com",
 ]
@@ -211,5 +215,18 @@ CORS_ALLOW_CREDENTIALS = True
 # 프로덕션 환경 설정
 #ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='13.124.195.6').split(',')
 ALLOWED_HOSTS = ["*"]
+
+# 캐시 설정 (성능 최적화)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 기본 5분
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+            'CULL_FREQUENCY': 3,
+        }
+    }
+}
 
 

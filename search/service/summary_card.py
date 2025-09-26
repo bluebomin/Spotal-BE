@@ -1,6 +1,10 @@
 from openai import OpenAI
 from django.conf import settings
 import re
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from recommendations.services.cache_service import CacheService
 
 def extract_keywords(reviews):
     if not reviews:
@@ -42,7 +46,60 @@ def extract_keywords(reviews):
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 def generate_summary_card(details, reviews, uptaenms):
-    keywords = extract_keywords(reviews)
+    # 캐시 키 생성용 데이터 준비
+    place_name = details.get("name", "")
+    review_texts = []
+    
+    # 리뷰 타입이 str 리스트라면 dict 리스트로 고치도록 
+    if reviews and isinstance(reviews, list):
+        normalized_reviews = []
+        for r in reviews:
+            if isinstance(r, str):
+                normalized_reviews.append({"text": r})
+                review_texts.append(r)
+            elif isinstance(r, dict):
+                normalized_reviews.append(r)
+                review_texts.append(r.get("text", ""))
+        reviews = normalized_reviews
+
+    # 캐시에서 먼저 조회
+    cached_summary = CacheService.cache_gpt_summary(place_name, review_texts, uptaenms)
+    if cached_summary:
+        return cached_summary
+
+    # 리뷰가 없거나 모두 공백인 경우
+    if not reviews or all(not r.get("text", "").strip() for r in reviews):
+
+        prompt = f"""
+        '{details.get("name")}' 은/는 어떤 곳인지 설명해 주세요.
+        업태 구분명({', '.join(uptaenms)}) / '{details.get("rating")}'과 '{details.get("formatted_address")}'을 참고할 수 있습니다.
+        조건:
+        - 반드시 1문장, 간결하게 작성
+        - 문장은 '~~한 곳이에요', '~~로 사랑받는 곳이에요', '~~을 즐길 수 있는 곳이에요'로 끝낼 것
+
+
+        예시:
+        - "두툼한 삼겹살과 푸짐한 반찬으로 회식에 인기 있는 곳이에요"
+        - "시원한 콩나물국밥으로 아침 손님에게 사랑받는 곳이에요!"
+        - "환승이 편리하고 주변 상권 접근성이 좋은 교통 요지 입니다"
+        """
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5  # 약간의 창의성 허용
+        )
+        summary = response.choices[0].message.content.strip()
+        summary = re.sub(r'^"(.*)"$', r'\1', summary)  # 양쪽 큰따옴표 제거
+
+        # 결과를 캐시에 저장
+        CacheService.set_gpt_summary(place_name, review_texts, uptaenms, summary)
+
+        return summary
+   
+   # reviews를 dict 리스트로 수정
+    review_texts = [r.get("text", "") for r in reviews]
+    keywords = extract_keywords(review_texts)
     uptaenms_list = uptaenms if isinstance(uptaenms, list) else [str(uptaenms)]
 
     # point_of_interest, establishment만 있으면 요약카드 생성하지 않음
@@ -65,12 +122,12 @@ def generate_summary_card(details, reviews, uptaenms):
     - 업태 구분명은 참고만 하고, 문장에 직접 "음식점, 카페, 역" 같은 단어는 쓰지 마
     - 장소가 가게일 수도 있고 아닐 수도 있으므로 '가게'라는 단어를 쓰지 마
     - 리뷰가 1개뿐이어도, 핵심 키워드를 반드시 포함해 요약
-    - 문장은 '~~한 곳이다', '~~로 사랑받는다', '~~을 즐길 수 있다'로 끝낼 것
+    - 문장은 '~~한 곳이에요', '~~로 사랑받는 곳이에요', '~~을 즐길 수 있는 곳이에요'로 끝낼 것
 
     예시:
-    - "두툼한 삼겹살과 푸짐한 반찬으로 회식에 인기 있는 곳"
-    - "시원한 콩나물국밥으로 아침 손님에게 사랑받는 곳"
-    - "환승이 편리하고 주변 상권 접근성이 좋은 교통 요지"
+    - "두툼한 삼겹살과 푸짐한 반찬으로 회식에 인기 있는 곳이에요"
+    - "시원한 콩나물국밥으로 아침 손님에게 사랑받는 곳이에요!"
+    - "환승이 편리하고 주변 상권 접근성이 좋은 교통 요지 입니다"
     """
 
     response = client.chat.completions.create(
@@ -80,68 +137,142 @@ def generate_summary_card(details, reviews, uptaenms):
     )
 
     summary = response.choices[0].message.content.strip()
+    summary = re.sub(r'^"(.*)"$', r'\1', summary)  # 양쪽 큰따옴표 제거
 
+    # 결과를 캐시에 저장
+    CacheService.set_gpt_summary(place_name, review_texts, uptaenms, summary)
 
     return summary
 
-# 감정태그생성
 
+# 감정태그생성
 
 ALLOWED_TAGS = ["정겨움", "편안함", "조용함", "활기참", "소박함", "세심함", "정성스러움", "깔끔함", "친절함", "고즈넉함",
                 "현대적임", "전통적임", "독특함", "화려함", "낭만적임", "가족적임", "전문적임","아늑함","편리함","트렌디함"]
 
-def generate_emotion_tags(details, reviews, uptaenms):
-
-    prompt = f"""
-    아래는 '{details.get("name")}' 가게의 구글맵 리뷰입니다:
-
-    {reviews[:5]}
-    {uptaenms}
-
-    위 리뷰를 참고해서 아래 감정 태그 중 2개를 골라줘:
-    - 정겨움
-    - 편안함
-    - 조용함
-    - 활기참
-    - 소박함
-    - 세심함
-    - 정성스러움
-    - 깔끔함
-    - 친절함
-    - 고즈넉함
-    - 현대적임
-    - 전통적임
-    - 독특함
-    - 화려함
-    - 낭만적임
-    - 가족적임
-    - 전문적임
-    - 아늑함
-    - 편리함
-    - 트렌디함
+def generate_emotion_tags(place_name, reviews, types):
+    """리뷰를 기반으로 감정 태그 생성 (캐싱 적용)"""
     
+    # 캐시 키 생성용 데이터 준비
+    review_texts = []
     
+    # reviews 타입이 str이었다면 dict로. 
+    if reviews and isinstance(reviews, list):
+        normalized_reviews = []
+        for r in reviews:
+            if isinstance(r, str):
+                normalized_reviews.append({"text": r})
+                review_texts.append(r)
+            elif isinstance(r, dict):
+                normalized_reviews.append(r)
+                review_texts.append(r.get("text", ""))
+        reviews = normalized_reviews
+    
+    # 캐시에서 먼저 조회
+    cached_tags = CacheService.cache_gpt_emotion_tags(place_name, review_texts, types)
+    if cached_tags:
+        return cached_tags
+    
+    # 리뷰가 없으면 업태별 기본 감정 태그 반환
+    if not reviews or len(reviews) == 0:
+        print(f"[DEBUG] 리뷰가 없음, 업태별 기본 감정 태그 사용")
+        default_tags = get_default_emotion_tags_by_types(types)
+        # 기본 태그도 캐시에 저장
+        CacheService.set_gpt_emotion_tags(place_name, review_texts, types, default_tags)
+        return default_tags
+    
+    # 리뷰가 있으면 GPT로 감정 태그 생성
+    try:
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        
+        # 리뷰 텍스트들을 하나로 합치기
+        review_text = "\n".join([review.get('text', '') for review in reviews[:5]])
+        
+        prompt = f"""
+        다음 가게의 리뷰를 읽고, 이 가게에서 느낄 수 있는 감정을 나타내는 한국어 단어 2개를 추출해주세요.
+        
+        가게명: {place_name}
+        업태: {', '.join(types)}
+        리뷰:
+        {review_text}
+        
+        감정 태그는 쉼표로 구분해서 답변해주세요. 예: 친절함, 아늑함
+        """
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=50,
+            temperature=0.7
+        )
+        
+        emotion_text = response.choices[0].message.content.strip()
+        
+        # 응답을 감정 태그 리스트로 변환
+        emotion_candidates = [tag.strip() for tag in emotion_text.split(',')]
 
-    - 반드시 쉼표(,)로만 구분해서 출력해.
-    - 항상 서로 다른 성격의 감정을 고르고, 동일한 패턴이 반복되지 않도록 해줘.
-    - 같은 조합을 연속으로 추천하지 말 것.
-    - 리뷰에 직접적으로 드러나지 않는 부분이라도 합리적으로 추측해서 감정을 다양하게 반영할 것.
-  
-    """
+        # 최종 감정 태그 (최대 2개)
+        final_emotions = emotion_candidates[:2]
+        
+        # 결과를 캐시에 저장
+        CacheService.set_gpt_emotion_tags(place_name, review_texts, types, final_emotions)
+       
+        return final_emotions
+        
+    except Exception as e:
+        print(f"[DEBUG] GPT API 호출 중 오류: {e}")
+        # GPT 실패 시에도 업태별 기본 감정 태그 반환
+        default_tags = get_default_emotion_tags_by_types(types)
+        CacheService.set_gpt_emotion_tags(place_name, review_texts, types, default_tags)
+        return default_tags
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.8,
-    )
 
-    raw_text = response.choices[0].message.content.strip()
-
-    # 쉼표, 줄바꿈, 대시(-) 등 모든 구분자로 분리
-    candidates = re.split(r'[,\\n\\-]+', raw_text)
-
-    # 허용된 태그만 필터링 + 중복 제거
-    tags = [t.strip() for t in candidates if t.strip() in ALLOWED_TAGS]
-    tags = list(dict.fromkeys(tags))  # 중복 제거, 순서 보존
-
-    return tags
+def get_default_emotion_tags_by_types(types):
+    """업태별로 기본 감정 태그 반환"""
+ 
+    # 업태별 기본 감정 태그 매핑
+    type_emotion_map = {
+        'restaurant': ['맛있음'],
+        'food': ['맛있음'],
+        'cafe': ['편안함'],
+        'bar': ['활기참'],
+        'bakery': ['정겨움'],
+        'store': ['편리함'],
+        'shopping_mall': ['활기참'],
+        'amusement_park': ['즐거움'],
+        'park': ['평온함'],
+        'museum': ['지적임'],
+        'library': ['조용함'],
+        'gym': ['활기참'],
+        'spa': ['편안함'],
+        'hotel': ['편안함'],
+        'hospital': ['안전함'],
+        'school': ['지적임'],
+        'university': ['지적임'],
+        'bank': ['안전함'],
+        'post_office': ['편리함'],
+        'police': ['안전함'],
+        'fire_station': ['안전함'],
+        'gas_station': ['편리함'],
+        'car_wash': ['편리함'],
+        'car_rental': ['편리함'],
+        'airport': ['활기참'],
+        'train_station': ['활기참'],
+        'bus_station': ['활기참'],
+        'subway_station': ['활기참'],
+        'taxi_stand': ['편리함'],
+        'parking': ['편리함'],
+        'point_of_interest': ['정겨움'],
+        'establishment': ['정겨움']
+    }
+    
+    # 업태에 맞는 감정 태그 찾기
+    for place_type in types:
+        if place_type in type_emotion_map:
+            emotion_tags = type_emotion_map[place_type]
+            print(f"[DEBUG] 업태 '{place_type}'에 맞는 기본 감정 태그: {emotion_tags}")
+            return emotion_tags
+    
+    # 기본값
+    print(f"[DEBUG] 매칭되는 업태가 없음, 기본값 '정겨움' 반환")
+    return ['정겨움']

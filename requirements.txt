@@ -15,3 +15,5 @@ requests>=2.31.0
 pandas
 
 django-cors-headers
+
+hgtk==0.2.1

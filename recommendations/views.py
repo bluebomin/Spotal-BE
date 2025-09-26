@@ -6,7 +6,12 @@ from django.conf import settings
 from .models import Place, SavedPlace, AISummary
 from .serializers import *
 from rest_framework.views import APIView
-from .services.recommendation_service import generate_recommendations
+from search.service.summary_card import generate_summary_card, generate_emotion_tags
+from search.service.address import translate_to_korean
+from .services.google_service import get_similar_places, get_place_details, get_photo_url
+from .services.utils import extract_neighborhood
+from .services.emotion_service import expand_emotions_with_gpt   
+
 
 # Create your views here.
 
@@ -18,34 +23,108 @@ class RecommendationView(APIView):
     def post(self, request):
         name = request.data.get("name")
         address = request.data.get("address")
-        emotion_names = request.data.get("emotion_tags", [])
+        emotion_tags = request.data.get("emotion_tags", [])
+        user_id = request.data.get("user_id", None)  # user_id 필드 optional
 
-        if not name or not address or not emotion_names:
+        # --- 필수 입력값 체크 ---
+        if not name or not address or not emotion_tags:
             return Response(
                 {"error": "name, address, emotion_tags는 필수 입력값입니다."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # --- 업태 구분 (카테고리) ---
+        category_str = request.data.get("category", "")
+        if "cafe" in category_str.lower():
+            allowed_types = ["cafe"]
+        else:
+            allowed_types = ["restaurant", "food"]
+
         try:
-            # 추천 로직 실행 (Google + GPT)
-            candidate_places = generate_recommendations(name, address, emotion_names)[:8]  # 최대 8개 추천
+            # 1. GPT 기반 감정 확장
+            emotions = expand_emotions_with_gpt(emotion_tags)   # -> Emotion 객체 QuerySet
+            emotion_names = [e.name for e in emotions]          # → 문자열 리스트로 변환
+
+            # 2. 구글맵에서 유사 가게 검색
+            candidate_places = get_similar_places(
+                address,
+                emotion_names,
+                allowed_types=allowed_types
+            )[:8]
+
+            # user_id가 있으면 감정보관함 제외 필터링
+            saved_shop_ids = []
+            if user_id:
+                saved_shop_ids = SavedPlace.objects.filter(
+                    user_id=user_id, rec=1
+                ).values_list("shop_id", flat=True)
 
             response_data = []
-            for place_data in candidate_places:
-                # Place 저장
-                place = Place.objects.create(
-                    name=place_data["name"],
-                    address=place_data["address"],
-                    image_url=place_data.get("image_url", ""),
-                    location=place_data["location_obj"]
+
+            # 3. 후보 가게 상세 처리 (최적화: 상위 5개만 처리)
+            processed_count = 0
+            for c in candidate_places:
+                if processed_count >= 5:  # 상위 5개만 처리하여 시간 단축
+                    break
+                    
+                place_id = c.get("place_id")
+                place_name = c.get("name")
+
+                details = get_place_details(place_id, place_name)
+                reviews = [r["text"] for r in details.get("reviews", [])]
+                uptaenms = details.get("types", [])
+
+                # 주소/이름 한국어 정규화
+                name_ko = translate_to_korean(details.get("name")) if details.get("name") else None
+                address_ko = translate_to_korean(details.get("formatted_address")) if details.get("formatted_address") else None
+
+                photo_ref = ""
+                if details.get("photos"):
+                    photo_ref = details["photos"][0].get("photo_reference", "")
+
+                # GPT 요약 + 감정태그 생성
+                if reviews:  
+                    summary = generate_summary_card(details, reviews, uptaenms) or "요약 준비중입니다"
+                else:
+                    neighborhood = extract_neighborhood(address_ko or c.get("address"))
+                    summary = f"{place_name}은 {neighborhood}에 위치한 가게입니다"
+
+                tags = generate_emotion_tags(details, reviews, uptaenms) or []
+
+                # Emotion 모델 매핑 (입력 감정 + 자동 생성 감정)
+                emotion_objs = list(emotions)  # GPT 확장된 감정
+                for tag_name in tags:
+                    obj, _ = Emotion.objects.get_or_create(name=tag_name)
+                    emotion_objs.append(obj)
+
+                # Location 매핑
+                neighborhood_name = extract_neighborhood(address_ko)
+                location_obj, _ = Location.objects.get_or_create(name=neighborhood_name)
+
+
+                place, created = Place.objects.update_or_create(
+                    google_place_id=place_id,
+                    defaults={
+                        "name": name_ko or place_name,
+                        "address": address_ko or c.get("address"),
+                        "photo_reference": photo_ref,   # details에서 가져온 값 저장
+                        "location": location_obj,
+                    }
                 )
-                place.emotions.set(place_data["emotion_objs"])
 
-                # AISummary 저장
-                AISummary.objects.create(shop=place, summary=place_data["summary"])
+                place.emotions.set(emotion_objs)
 
-                # 직렬화해서 응답 데이터에 추가
+                # 새로 만든 경우에만 AISummary 생성
+                if created:
+                    AISummary.objects.create(shop=place, summary=summary)
+
+                # 감정보관함에 이미 저장된 경우 skip
+                if user_id and place.shop_id in saved_shop_ids:
+                    continue
+
+                # 직렬화 데이터 추가
                 response_data.append(PlaceSerializer(place).data)
+                processed_count += 1
 
             return Response(response_data, status=status.HTTP_201_CREATED)
 
@@ -54,7 +133,6 @@ class RecommendationView(APIView):
                 {"error": f"추천 생성 중 오류 발생: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
 
 
 # --------------- Place (추천가게) ----------------
@@ -78,8 +156,14 @@ class SavedPlaceCreateView(generics.CreateAPIView):
     # summary_snapshot에 최신 ai요약 저장해 놓기 
     def perform_create(self, serializer):
         saved_place = serializer.save()
-        # 해당 Place의 최신 요약 가져오기
-        last_summary = saved_place.shop.ai_summary.order_by("-created_date").first()
+
+        # 추천 로직에 따라 최신요약 저장 로직 분기
+        last_summary = None
+        if saved_place.rec == 1:
+            last_summary = saved_place.shop.ai_summary.order_by("-created_date").first()
+        elif saved_place.rec == 2:
+            last_summary = saved_place.shop.infer_ai_summary.order_by("-created_date").first()
+
         if last_summary:
             saved_place.summary_snapshot = last_summary.summary
             saved_place.save()
@@ -128,7 +212,7 @@ class AISummaryDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         shop_id = self.kwargs.get("shop_id")
-        return AISummary.objects.get(shop__shop_id=shop_id)
+        return AISummary.objects.get(shop__shop_id=shop_id) # 이건 추천1의 ai summary만 가져오는 코드임 
     
 
 # AISummary만 따로 생성 (요약 재생성 요청 시 필요)
