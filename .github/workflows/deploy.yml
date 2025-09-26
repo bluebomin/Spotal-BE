@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,29 +22,32 @@ jobs:
           port: 22
           script: |
             echo "배포 시작: $(date)"
-            
+
             # 프로젝트 디렉토리로 이동
             cd Spotal-BE
-            
+
+            # 가상환경 활성화
+            source venv/bin/activate
+
             # 현재 브랜치 확인
             echo "현재 브랜치: $(git branch --show-current)"
-            
+
             # 최신 코드 가져오기
             echo "Git pull 시작"
             git pull origin main
-            
+
             # 의존성 설치
             echo "의존성 설치..."
-            pip3 install -r requirements.txt
-            
+            pip install -r requirements.txt
+
             # 데이터베이스 마이그레이션
             echo "데이터베이스 마이그레이션..."
-            python3 manage.py migrate
-            
+            python manage.py migrate
+
             # 정적 파일 수집
             echo "정적 파일 수집..."
-            python3 manage.py collectstatic --noinput
-            
+            python manage.py collectstatic --noinput
+
             # Nginx 재시작
             echo "Nginx 재시작..."
             sudo systemctl restart nginx
@@ -59,3 +62,4 @@ jobs:
             # 서버 상태 확인
             echo "서버 상태 확인..."
             sudo systemctl status nginx --no-pager -l
+            ps aux | grep python
