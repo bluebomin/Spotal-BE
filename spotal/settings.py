@@ -212,6 +212,12 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
+# CSRF 설정 (Django Admin 접속용)
+CSRF_TRUSTED_ORIGINS = [
+    "https://spotal-api.duckdns.org",
+    "http://spotal-api.duckdns.org",
+]
+
 # 프로덕션 환경 설정
 #ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='13.124.195.6').split(',')
 ALLOWED_HOSTS = ["*"]
