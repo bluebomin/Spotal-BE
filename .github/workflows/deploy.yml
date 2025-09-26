@@ -49,8 +49,10 @@ jobs:
             echo "Nginx 재시작..."
             sudo systemctl restart nginx
             
-            # Django 프로세스 재시작 (supervisor 사용 시)
-            # sudo supervisorctl restart spotal
+            # Django 서버 재시작
+            echo "Django 서버 재시작..."
+            pkill -f "python manage.py runserver" || true
+            nohup python manage.py runserver 0.0.0.0:8000 > server.log 2>&1 &
             
             echo "배포 완료: $(date)"
             
