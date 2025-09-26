@@ -14,6 +14,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
 from django.contrib.auth import get_user_model
+from django.db.models import Count
 
 
 User = get_user_model()
@@ -58,7 +59,9 @@ class LocationViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny] 
 
 class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
-    queryset = Memory.objects.all().order_by('-created_at')
+    queryset = Memory.objects.annotate(
+        comment_count=Count("comments", distinct=True)
+    ).order_by('-created_at')
     serializer_class = MemorySerializer
     parser_classes = [MultiPartParser, FormParser]  # 이미지 + 텍스트 같이 받으려면 필요
     permission_classes = [AllowAny]
