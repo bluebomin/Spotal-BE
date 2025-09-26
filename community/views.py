@@ -2,7 +2,7 @@ import os
 from rest_framework import viewsets, status, generics
 from .models import *
 from .serializers import *
-from .ImageSerializer import * 
+from .ImageSerializers import * 
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.db.models import Count, Q
@@ -60,7 +60,8 @@ class LocationViewSet(viewsets.ModelViewSet):
 
 class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
     queryset = Memory.objects.annotate(
-        comment_count=Count("comments", distinct=True)
+        comment_count=Count("comments", distinct=True),
+        bookmark_count=Count("bookmarks", distinct=True)
     ).order_by('-created_at')
     serializer_class = MemorySerializer
     parser_classes = [MultiPartParser, FormParser]  # 이미지 + 텍스트 같이 받으려면 필요

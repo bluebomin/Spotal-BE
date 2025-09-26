@@ -31,10 +31,7 @@ class Memory(models.Model):
         related_name="memories",
     ) 
     emotion_id = models.ManyToManyField(Emotion) # 감정 여러개 선택 가능
-    location = models.ForeignKey(Location, on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name="memories",
-    ) # 위치는 하나만 선택 가능
+    location = models.ForeignKey(Location, on_delete=models.SET_NULL,null=True, blank=True,related_name="memories") # 위치는 하나만 선택 가능
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='memories')
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -54,16 +51,8 @@ class Image(models.Model):
 # 북마크
 class Bookmark(models.Model):
     bookmark_id = models.BigAutoField(primary_key=True)
-    memory = models.ForeignKey(
-        "community.Memory", 
-        on_delete=models.CASCADE, 
-        related_name="bookmarks"
-    )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="bookmarks"
-    )
+    memory = models.ForeignKey("community.Memory", on_delete=models.CASCADE, related_name="bookmarks")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="bookmarks")
     created_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
