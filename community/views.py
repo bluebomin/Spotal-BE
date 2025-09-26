@@ -70,15 +70,17 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
     def tag_options(self, request):
         emotions = Emotion.objects.all().order_by('pk')
         locations = Location.objects.all().order_by('pk')
+        boards = Board.objects.all().order_by('pk')
         return Response({
             'emotions': EmotionSerializer(emotions, many=True).data,
-            'locations': LocationSerializer(locations, many=True).data
+            'locations': LocationSerializer(locations, many=True).data,
+            'boards': BoardSerializer(boards, many=True).data
         })
 
-    # 커뮤니티 글 목록 조회 (필터링)
+    # 커뮤니티 글 목록 조회 (필터링 / 위치, 감정, 게시글분류 포함)
     def get_queryset(self):
         qs = super().get_queryset() \
-            .select_related('location') \
+            .select_related('location','board') \
             .prefetch_related('emotion_id')
 
         params = self.request.query_params
@@ -109,6 +111,16 @@ class MemoryViewSet(BaseResponseMixin,viewsets.ModelViewSet):
             qs = qs.annotate(
                 sel_count=Count('emotion_id', filter=Q(emotion_id__in=ids), distinct=True)
             ).filter(sel_count=len(ids))
+
+            # 보드 필터
+            board = params.get('board_id')
+            if board is not None:
+                if not str(board).isdigit():
+                    raise ValidationError({"board_id": "정수 ID여야 합니다."})
+                board = int(board)
+                if not Board.objects.filter(pk=board).exists():
+                    raise ValidationError({"board_id": f"존재하지 않는 보드 ID {board}"})
+                qs = qs.filter(board_id=board)
 
         return qs
 
