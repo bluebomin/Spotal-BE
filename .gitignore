@@ -348,3 +348,6 @@ myvenv/
 
 #env
 .env
+
+# SSH Keys
+*.pem
