@@ -3,7 +3,6 @@ name: Deploy to EC2
 on:
   push:
     branches: [main]
-  workflow_dispatch:  # 수동 실행도 가능
 
 jobs:
   deploy:
@@ -21,45 +20,12 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            echo "배포 시작: $(date)"
-
-            # 프로젝트 디렉토리로 이동
             cd Spotal-BE
-
-            # 가상환경 활성화
-            source venv/bin/activate
-
-            # 현재 브랜치 확인
-            echo "현재 브랜치: $(git branch --show-current)"
-
-            # 최신 코드 가져오기
-            echo "Git pull 시작"
             git pull origin main
-
-            # 의존성 설치
-            echo "의존성 설치..."
+            source venv/bin/activate
             pip install -r requirements.txt
-
-            # 데이터베이스 마이그레이션
-            echo "데이터베이스 마이그레이션..."
             python manage.py migrate
-
-            # 정적 파일 수집
-            echo "정적 파일 수집..."
             python manage.py collectstatic --noinput
-
-            # Nginx 재시작
-            echo "Nginx 재시작..."
             sudo systemctl restart nginx
-            
-            # Django 서버 재시작
-            echo "Django 서버 재시작..."
             pkill -f "python manage.py runserver" || true
             nohup python manage.py runserver 0.0.0.0:8000 > server.log 2>&1 &
-            
-            echo "배포 완료: $(date)"
-            
-            # 서버 상태 확인
-            echo "서버 상태 확인..."
-            sudo systemctl status nginx --no-pager -l
-            ps aux | grep python
