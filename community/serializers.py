@@ -47,11 +47,12 @@ class MemorySerializer(serializers.ModelSerializer):
     location = LocationSerializer(read_only=True) #read_only=True는 출력에만
     images = serializers.SerializerMethodField() 
     nickname = serializers.CharField(source='user.nickname', read_only=True)
+    profile_image_url = serializers.SerializerMethodField() 
 
     class Meta:
         model = Memory
         fields = [
-            'memory_id', 'user_id',"nickname",  'content','board_id',
+            'memory_id', 'user_id',"nickname", "profile_image_url", 'content','board_id',
             'emotion_id', 'location_id',        # 입력용
             'board','emotions', 'location',              # 출력용
             'created_at', 'updated_at','images'
@@ -75,6 +76,11 @@ class MemorySerializer(serializers.ModelSerializer):
             }
             for img in obj.images.all()
             ]
+    
+    def get_profile_image_url(self, obj):
+        if obj.user and obj.user.profile_image_url:
+            return obj.user.profile_image_url
+        return None
 
 
 
@@ -90,17 +96,23 @@ class BookmarkSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     memory_id = serializers.PrimaryKeyRelatedField(source='memory', queryset=Memory.objects.all(),required=False)
     nickname = serializers.CharField(source='user.nickname', read_only=True)
+    profile_image_url = serializers.SerializerMethodField()
     replies = serializers.SerializerMethodField()
     
     class Meta:
         model = Comment
-        fields = ['comment_id', 'memory_id', 'user_id', 'nickname', 'content', 'created_at', 'updated_at', 'parent', 'replies']
+        fields = ['comment_id', 'memory_id', 'user_id', 'nickname', 'profile_image_url', 'content', 'created_at', 'updated_at', 'parent', 'replies']
         read_only_fields = ['created_at', 'updated_at']
 
     def get_replies(self, obj):
         if obj.replies.exists():
-            return CommentSerializer(obj.replies.all(), many=True,context=self.context).data
+            return CommentSerializer(obj.replies.all(), many=True).data
         return []
+    
+    def get_profile_image_url(self, obj):
+        if obj.user and obj.user.profile_image_url:
+            return obj.user.profile_image_url
+        return None
     
     def to_representation(self, instance):
         ret = super().to_representation(instance)

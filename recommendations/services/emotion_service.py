@@ -2,15 +2,20 @@
 from openai import OpenAI
 from django.conf import settings
 from community.models import Emotion
+from .cache_service import CacheService
 import json
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 def expand_emotions_with_gpt(emotion_tags):
     """
-    입력된 emotion_tags와 비슷한 감정을 GPT를 통해 확장
+    입력된 emotion_tags와 비슷한 감정을 GPT를 통해 확장 (캐싱 적용)
     DB에 실제 존재하는 Emotion 객체 리스트 반환
     """
+    # 캐시에서 먼저 조회
+    cached_expanded = CacheService.cache_gpt_emotion_expansion(emotion_tags)
+    if cached_expanded:
+        return Emotion.objects.filter(name__in=cached_expanded)
 
     all_emotions = list(Emotion.objects.values_list("name", flat=True))
 
@@ -43,6 +48,9 @@ def expand_emotions_with_gpt(emotion_tags):
     except json.JSONDecodeError:
         # 혹시라도 JSON 실패하면 fallback으로 콤마 split
         expanded_names = [name.strip() for name in result_text.split(",")]
+
+    # 결과를 캐시에 저장
+    CacheService.set_gpt_emotion_expansion(emotion_tags, expanded_names)
 
     # DB에 실제 존재하는 감정만 필터링
     return Emotion.objects.filter(name__in=expanded_names)

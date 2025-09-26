@@ -6,18 +6,24 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    profile_image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["nickname", "detail"]
+        fields = ["nickname", "detail", "profile_image_url"]
         read_only_fields = ["detail"] # 우선 세부설명은 수정 못하도록 명시해둠. 
+
+    def get_profile_image_url(self, obj):
+        return obj.profile_image_url or None
 
 
 class BookmarkSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
+    memory_id = serializers.IntegerField(source="memory.memory_id", read_only=True)  # 게시글 ID
 
     class Meta:
         model = Bookmark
-        fields = ["images"]
+        fields = ["memory_id", "images"]
 
     def get_images(self, obj):
         return [image.image_url for image in obj.memory.images.all()]

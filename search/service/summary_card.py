@@ -1,6 +1,10 @@
 from openai import OpenAI
 from django.conf import settings
 import re
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from recommendations.services.cache_service import CacheService
 
 def extract_keywords(reviews):
     if not reviews:
@@ -42,16 +46,26 @@ def extract_keywords(reviews):
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 def generate_summary_card(details, reviews, uptaenms):
-
+    # 캐시 키 생성용 데이터 준비
+    place_name = details.get("name", "")
+    review_texts = []
+    
     # 리뷰 타입이 str 리스트라면 dict 리스트로 고치도록 
     if reviews and isinstance(reviews, list):
         normalized_reviews = []
         for r in reviews:
             if isinstance(r, str):
                 normalized_reviews.append({"text": r})
+                review_texts.append(r)
             elif isinstance(r, dict):
                 normalized_reviews.append(r)
+                review_texts.append(r.get("text", ""))
         reviews = normalized_reviews
+
+    # 캐시에서 먼저 조회
+    cached_summary = CacheService.cache_gpt_summary(place_name, review_texts, uptaenms)
+    if cached_summary:
+        return cached_summary
 
     # 리뷰가 없거나 모두 공백인 경우
     if not reviews or all(not r.get("text", "").strip() for r in reviews):
@@ -77,6 +91,9 @@ def generate_summary_card(details, reviews, uptaenms):
         )
         summary = response.choices[0].message.content.strip()
         summary = re.sub(r'^"(.*)"$', r'\1', summary)  # 양쪽 큰따옴표 제거
+
+        # 결과를 캐시에 저장
+        CacheService.set_gpt_summary(place_name, review_texts, uptaenms, summary)
 
         return summary
    
@@ -122,6 +139,8 @@ def generate_summary_card(details, reviews, uptaenms):
     summary = response.choices[0].message.content.strip()
     summary = re.sub(r'^"(.*)"$', r'\1', summary)  # 양쪽 큰따옴표 제거
 
+    # 결과를 캐시에 저장
+    CacheService.set_gpt_summary(place_name, review_texts, uptaenms, summary)
 
     return summary
 
@@ -132,22 +151,35 @@ ALLOWED_TAGS = ["정겨움", "편안함", "조용함", "활기참", "소박함",
                 "현대적임", "전통적임", "독특함", "화려함", "낭만적임", "가족적임", "전문적임","아늑함","편리함","트렌디함"]
 
 def generate_emotion_tags(place_name, reviews, types):
-    """리뷰를 기반으로 감정 태그 생성"""
-
+    """리뷰를 기반으로 감정 태그 생성 (캐싱 적용)"""
+    
+    # 캐시 키 생성용 데이터 준비
+    review_texts = []
+    
     # reviews 타입이 str이었다면 dict로. 
     if reviews and isinstance(reviews, list):
         normalized_reviews = []
         for r in reviews:
             if isinstance(r, str):
                 normalized_reviews.append({"text": r})
+                review_texts.append(r)
             elif isinstance(r, dict):
                 normalized_reviews.append(r)
+                review_texts.append(r.get("text", ""))
         reviews = normalized_reviews
+    
+    # 캐시에서 먼저 조회
+    cached_tags = CacheService.cache_gpt_emotion_tags(place_name, review_texts, types)
+    if cached_tags:
+        return cached_tags
     
     # 리뷰가 없으면 업태별 기본 감정 태그 반환
     if not reviews or len(reviews) == 0:
         print(f"[DEBUG] 리뷰가 없음, 업태별 기본 감정 태그 사용")
-        return get_default_emotion_tags_by_types(types)
+        default_tags = get_default_emotion_tags_by_types(types)
+        # 기본 태그도 캐시에 저장
+        CacheService.set_gpt_emotion_tags(place_name, review_texts, types, default_tags)
+        return default_tags
     
     # 리뷰가 있으면 GPT로 감정 태그 생성
     try:
@@ -181,13 +213,18 @@ def generate_emotion_tags(place_name, reviews, types):
 
         # 최종 감정 태그 (최대 2개)
         final_emotions = emotion_candidates[:2]
+        
+        # 결과를 캐시에 저장
+        CacheService.set_gpt_emotion_tags(place_name, review_texts, types, final_emotions)
        
         return final_emotions
         
     except Exception as e:
         print(f"[DEBUG] GPT API 호출 중 오류: {e}")
         # GPT 실패 시에도 업태별 기본 감정 태그 반환
-        return get_default_emotion_tags_by_types(types)
+        default_tags = get_default_emotion_tags_by_types(types)
+        CacheService.set_gpt_emotion_tags(place_name, review_texts, types, default_tags)
+        return default_tags
 
 
 def get_default_emotion_tags_by_types(types):
