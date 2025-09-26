@@ -5,7 +5,7 @@ from .ImageSerializers import *
 class BoardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
-        fields = ['name']
+        fields ='__all__'
 
 class EmotionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -42,19 +42,20 @@ class MemorySerializer(serializers.ModelSerializer):
     )
 
     # 출력용: 태그 상세를 함께 내려주고 싶을 때
-    board = serializers.CharField(source="board.name", read_only=True) 
+    board = BoardSerializer(read_only=True)
     emotions = EmotionSerializer(source='emotion_id', many=True, read_only=True)
     location = LocationSerializer(read_only=True) #read_only=True는 출력에만
     images = serializers.SerializerMethodField() 
     nickname = serializers.CharField(source='user.nickname', read_only=True)
     profile_image_url = serializers.SerializerMethodField() 
+    comment_count = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Memory
         fields = [
             'memory_id', 'user_id',"nickname", "profile_image_url", 'content','board_id',
             'emotion_id', 'location_id',        # 입력용
-            'board','emotions', 'location',              # 출력용
+            'board','emotions', 'location', 'comment_count',             # 출력용
             'created_at', 'updated_at','images'
         ]
         
@@ -81,9 +82,9 @@ class MemorySerializer(serializers.ModelSerializer):
         if obj.user and obj.user.profile_image_url:
             return obj.user.profile_image_url
         return None
-
-
-
+    
+    def get_comment_count(self, obj):
+        return obj.comments.count()
 
 class BookmarkSerializer(serializers.ModelSerializer):
     memory_content = serializers.CharField(source="memory.content", read_only=True)
@@ -91,7 +92,7 @@ class BookmarkSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bookmark
         fields = ["bookmark_id", "memory", "user", "memory_content", "created_date"]
-        read_only_fields = ["user", "created_date"]
+        
 
 class CommentSerializer(serializers.ModelSerializer):
     memory_id = serializers.PrimaryKeyRelatedField(source='memory', queryset=Memory.objects.all(),required=False)
@@ -102,7 +103,7 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ['comment_id', 'memory_id', 'user_id', 'nickname', 'profile_image_url', 'content', 'created_at', 'updated_at', 'parent', 'replies']
-        read_only_fields = ['created_at', 'updated_at']
+       
 
     def get_replies(self, obj):
         if obj.replies.exists():

@@ -16,7 +16,7 @@ jobs:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 3.34.90.75  # 새 EC2 IP 주소로 변경
+          host: 13.124.52.154  
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
@@ -49,8 +49,10 @@ jobs:
             echo "Nginx 재시작..."
             sudo systemctl restart nginx
             
-            # Django 프로세스 재시작 (supervisor 사용 시)
-            # sudo supervisorctl restart spotal
+            # Django 서버 재시작
+            echo "Django 서버 재시작..."
+            pkill -f "python manage.py runserver" || true
+            nohup python manage.py runserver 0.0.0.0:8000 > server.log 2>&1 &
             
             echo "배포 완료: $(date)"
             

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Memory, Image, Bookmark, Emotion, Location
+from .models import Memory, Image, Bookmark, Emotion, Location, Comment
 
 @admin.register(Emotion)
 class EmotionAdmin(admin.ModelAdmin):
@@ -28,3 +28,10 @@ class BookmarkAdmin(admin.ModelAdmin):
     list_display = ['bookmark_id', 'user', 'memory', 'created_date']
     list_filter = ['created_date', 'user']
     search_fields = ['user__email', 'memory__content']
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ['comment_id', 'user', 'memory', 'content', 'created_at', 'parent']
+    list_filter = ['created_at', 'user', 'memory']
+    search_fields = ['content', 'user__email', 'memory__content']
+    readonly_fields = ['created_at', 'updated_at']
