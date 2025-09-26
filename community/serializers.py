@@ -5,7 +5,7 @@ from .ImageSerializer import ImageSerializer
 class BoardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
-        fields = ['name']
+        fields ='__all__'
 
 class EmotionSerializer(serializers.ModelSerializer):
     class Meta:
